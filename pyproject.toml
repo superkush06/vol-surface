@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vol-surface"
-version = "0.1.0"
+version = "0.2.0"
 description = "Implied volatility surface: SABR/SVI calibration + no-arbitrage checks."
 authors = [{name = "superkush06"}]
 readme = "README.md"

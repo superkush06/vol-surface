@@ -5,8 +5,15 @@
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 > Implied volatility surface modelling — Black-Scholes pricing, IV solver
-> (Brent), SABR (Hagan) calibration, SVI parameterization, and no-arbitrage
+> (Brent), SABR (Hagan) calibration, single-slice **and multi-expiry SVI
+> surface** calibration with calendar no-arbitrage, plus butterfly/calendar
 > checks. Pure Python, no scipy required.
+
+![implied volatility surface](docs/demo.png)
+
+*A calendar-arbitrage-free SVI surface fit across five expiries: the 3-D vol
+surface (left) and per-expiry smiles showing negative skew flattening with
+maturity (right). Reproduce: `python examples/render_hero.py`.*
 
 ## TL;DR
 
@@ -30,6 +37,9 @@ print(params)  # SABRParams(alpha=..., beta=0.5, rho=..., nu=...)
 - **`implied_vol`** — Brent's-method IV solver (pure Python).
 - **`SABR`** — Hagan-formula IV + 3-parameter slice calibration (Nelder-Mead, scipy-free).
 - **`SVI`** — raw parameterisation + total-variance / IV conversion.
+- **`SVISurface`** — multi-expiry SVI calibration (`fit_svi_slice`,
+  `fit_svi_surface`), T-interpolated total variance, and a
+  `calendar_arbitrage_free` check.
 - **No-arbitrage checks** — butterfly density positivity and calendar monotonicity.
 - **Theory primer** — [`docs/theory.md`](docs/theory.md).
 
