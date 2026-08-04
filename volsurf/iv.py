@@ -37,16 +37,37 @@ def implied_vol(market_price: float, bs: BlackScholes, *,
         return bs.price(s, call=call) - market_price
     a, b = lo, hi
     fa, fb = f(a), f(b)
+    # A bracket end can *be* the root — deep out of the money the price is flat
+    # in sigma to the last bit, so f(lo) is exactly zero. Brent needs a sign
+    # change and would reject that as a bad bracket.
+    if fa == 0.0:
+        return a
+    if fb == 0.0:
+        return b
     if fa * fb > 0:
+        if fb < 0:
+            raise IVSolverError(
+                f"implied vol exceeds the upper bracket hi={hi}: the option "
+                f"price at sigma={hi} is still below the market price "
+                f"(short-dated / event vols can do this — pass a larger `hi`)"
+            )
         raise IVSolverError(
-            f"no sign change in [{a}, {b}]: f(a)={fa:.6g}, f(b)={fb:.6g}"
+            f"implied vol is below the lower bracket lo={lo}: the option "
+            f"price at sigma={lo} already exceeds the market price "
+            f"(pass a smaller `lo`)"
         )
-    return _brentq(f, a, b, tol=tol, max_iter=max_iter)
+    return _brentq(f, a, b, fa=fa, fb=fb, tol=tol, max_iter=max_iter)
 
 
-def _brentq(f, a: float, b: float, *, tol: float = 1e-8, max_iter: int = 100) -> float:
-    """Brent's method root finder (1973). Assumes f(a)*f(b) < 0."""
-    fa, fb = f(a), f(b)
+def _brentq(f, a: float, b: float, *, fa: float | None = None,
+            fb: float | None = None, tol: float = 1e-8,
+            max_iter: int = 100) -> float:
+    """Brent's method root finder (1973). Assumes f(a)*f(b) < 0.
+
+    `fa`/`fb` may be supplied to reuse already-computed endpoint values.
+    """
+    fa = f(a) if fa is None else fa
+    fb = f(b) if fb is None else fb
     if fa * fb >= 0:
         raise IVSolverError(f"f(a)*f(b) >= 0: {fa=}, {fb=}")
     if abs(fa) < abs(fb):
@@ -66,8 +87,11 @@ def _brentq(f, a: float, b: float, *, tol: float = 1e-8, max_iter: int = 100) ->
         else:
             # secant
             s = b - fb * (b - a) / (fb - fa)
+        # a and b are not kept ordered (only |f(b)| <= |f(a)|), so the
+        # acceptance interval between (3a+b)/4 and b needs explicit bounds.
+        lo_i, hi_i = sorted(((3 * a + b) / 4.0, b))
         cond = (
-            (s < (3 * a + b) / 4 or s > b) or
+            (s < lo_i or s > hi_i) or
             (mflag and abs(s - b) >= abs(b - c) / 2) or
             (not mflag and abs(s - b) >= abs(c - d) / 2) or
             (mflag and abs(b - c) < tol) or

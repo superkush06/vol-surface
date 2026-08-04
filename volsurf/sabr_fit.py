@@ -12,7 +12,7 @@ def _objective(params: SABRParams, F: float, T: float,
                weights: list[float]) -> float:
     """Weighted sum of squared IV errors."""
     sse = 0.0
-    for K, mv, w in zip(strikes, market_ivs, weights, strict=False):
+    for K, mv, w in zip(strikes, market_ivs, weights, strict=True):
         model = sabr_iv(F, K, T, params)
         sse += w * (model - mv) ** 2
     return sse

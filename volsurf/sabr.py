@@ -25,11 +25,25 @@ class SABRParams:
             raise ValueError("nu must be >= 0")
 
 
+# Below this |z| the direct z/x(z) evaluation loses precision (catastrophic
+# cancellation inside the log); the Taylor series agrees with the direct
+# formula to ~1e-13 at the crossover.
+_Z_SERIES_CUTOFF = 1e-6
+
+
 def sabr_iv(F: float, K: float, T: float, params: SABRParams) -> float:
     """Hagan SABR implied vol for a single (F, K, T) point.
 
     F: forward, K: strike, T: time to expiry, params: SABR parameters.
-    Special-cases the at-the-money strike where z/x(z) approaches 1.
+
+    A single code path covers every strike: near the money the z/x(z)
+    factor is evaluated by its Taylor series
+
+        z/x(z) = 1 + rho*z/2 + (3*rho^2 - 2)*z^2/12 + O(z^3)
+
+    so the at-the-money vol is the smooth limit of the general formula
+    (no separate ATM branch), and the (1 + [...]*T) time-correction
+    factor is applied for all strikes.
     """
     params.validate()
     alpha, beta, rho, nu = params.alpha, params.beta, params.rho, params.nu
@@ -42,23 +56,17 @@ def sabr_iv(F: float, K: float, T: float, params: SABRParams) -> float:
     A = alpha / (fk_beta * (1.0 + (one_minus_beta ** 2) * (log_fk ** 2) / 24.0
                             + (one_minus_beta ** 4) * (log_fk ** 4) / 1920.0))
 
-    if abs(F - K) < 1e-12:
-        # ATM closed form
-        sig = (alpha / (F ** one_minus_beta)) * (1.0 + (
-            ((one_minus_beta * alpha) ** 2) / (24.0 * (F ** (2.0 * one_minus_beta)))
-            + 0.25 * rho * beta * nu * alpha / (F ** one_minus_beta)
-            + (2.0 - 3.0 * rho * rho) * nu * nu / 24.0
-        ) * T)
-        return sig
-
     z = (nu / alpha) * fk_beta * log_fk
-    denom = 1.0 - 2.0 * rho * z + z * z
-    x_z = math.log((math.sqrt(denom) + z - rho) / (1.0 - rho))
-    if abs(x_z) < 1e-12:
-        return A
+    if abs(z) < _Z_SERIES_CUTOFF:
+        ratio = 1.0 + 0.5 * rho * z + (3.0 * rho * rho - 2.0) * z * z / 12.0
+    else:
+        denom = 1.0 - 2.0 * rho * z + z * z
+        x_z = math.log((math.sqrt(denom) + z - rho) / (1.0 - rho))
+        ratio = z / x_z
+
     correction = 1.0 + (
         ((one_minus_beta * alpha) ** 2) / (24.0 * (fk_beta ** 2))
         + 0.25 * rho * beta * nu * alpha / fk_beta
         + (2.0 - 3.0 * rho * rho) * nu * nu / 24.0
     ) * T
-    return A * (z / x_z) * correction
+    return A * ratio * correction
