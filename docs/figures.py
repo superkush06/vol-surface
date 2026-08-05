@@ -323,7 +323,7 @@ def calibration() -> None:
     ax2.annotate("1% error", xy=(1.75, 1.4e-2), fontsize=8, color=MUTED)
     ax2.set_ylim(1e-12, 3.0)
     ax2.set_ylabel("relative error in w(k)")
-    ax2.set_title("Eight orders of magnitude, decided by the initial guess")
+    ax2.set_title("Seven orders of magnitude, decided by the initial guess")
     ax2.legend(loc="lower left")
 
     fig.tight_layout()

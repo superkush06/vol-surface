@@ -16,6 +16,7 @@ import math
 import warnings
 
 from volsurf import (
+    BlackScholes,
     ButterflyArbitrageWarning,
     SVIRawParams,
     butterfly_violations,
@@ -68,7 +69,13 @@ def discrete_butterfly() -> None:
     for forward in (85.0, 100.0, 120.0):
         bad = butterfly_violations(strikes, ivs, T=0.5, forward=forward)
         marks = [strikes[i] for i in bad] or "none"
-        print(f"F = {forward:6.1f}            violations at strike {marks}")
+        # cost of the 70/80/90 butterfly at this forward, for scale
+        p = [BlackScholes(forward, K, 0.5).price(v)
+             for K, v in zip(strikes, ivs, strict=True)]
+        cost = p[0] - 2.0 * p[1] + p[2]
+        print(f"F = {forward:6.1f}            violations at strike {marks}"
+              f"{'':>{max(0, 12 - len(str(marks)))}}"
+              f"  70/80/90 butterfly costs {cost:+.3f}")
     print("the same quotes, different forwards: which butterflies are")
     print("mispriced depends on where the distribution is centred, so the")
     print("forward is a required argument rather than something to infer.")
