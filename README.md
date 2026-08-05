@@ -16,13 +16,15 @@ pass the forward instead of guessing one.
 
 ![the butterfly condition, diagnosed and repaired](docs/hero.png)
 
-The left panel is Axel Vogt's SVI slice, which looks like any other smile. The
-middle panel evaluates Gatheral–Jacquier's $g(k)$ on it: on the call wing $g$
-reaches −0.0329, and $g \ge 0$ is exactly the condition for the slice to come
-from a probability distribution. The right panel shows what that means in
-prices — the implied density is negative for $0.64 < k < 1.25$, so a butterfly
-struck there has non-negative payoff and negative cost. The dashed green curve
-is the same fit run with `butterfly_penalty=1e5`: its density is non-negative
+The left panel is Axel Vogt's SVI slice — Gatheral and Jacquier's standard
+butterfly-arbitrage counterexample, and the point of it is that it looks like
+any other smile. The middle panel evaluates Gatheral–Jacquier's $g(k)$ on it:
+on the call wing $g$ reaches −0.0329, and $g \ge 0$ is exactly the condition
+for the slice to come from a probability distribution. The right panel shows
+what that means in prices — the density is negative for $0.642 < k < 1.256$
+(the same interval the validation table reports below), so a butterfly struck
+there has non-negative payoff and negative cost. The dashed green curve is the
+same fit run with `butterfly_penalty=1e5`: its density is non-negative
 everywhere, and the smile moves at most 1.83 vol points to get there. The
 library reports that number and lets you decide.
 
@@ -83,9 +85,10 @@ svi_min_g(fit, -0.8, 0.8)
 # (0.08150882562974118, -0.40800000000000003)   <- min g > 0: admissible
 ```
 
-Every parameter comes back to at least seven significant figures. That is not
-what a five-parameter smile fit usually gives, and it is not because the
-optimiser is good.
+Four of the five parameters come back to seven significant figures or better
+($\rho$ and $b$ to eight); $a$ comes back to six, at a relative error of
+$1.9\times10^{-7}$. That is not what a five-parameter smile fit usually gives,
+and it is not because the optimiser is good.
 
 ![single-start versus quasi-explicit calibration](docs/calibration.png)
 
@@ -177,12 +180,12 @@ first. A few of the rows:
 | The two butterfly screens on the Vogt slice | `g < 0` on `k ∈ [0.642, 1.256]` | prices flag `k ∈ [0.650, 1.250]` |
 
 The third row is the one to read. `sabr_iv` matches Hagan's own at-the-money
-expression to fifteen digits and is four vol points away from the model that
-expression approximates, because at `ν²T = 3.2` the expansion has left its
-regime. That is a property of the formula, not an error in the transcription,
-and `docs/validation.md` gives the numbers for it. It also gives the `4 bp`
-the library gives up in the far wing by shipping Hagan's `z` instead of
-Obłój's `ζ`.
+expression to fourteen digits — that is what a max relative error of `2.6e-15`
+buys — and is four vol points away from the model that expression approximates,
+because at `ν²T = 3.2` the expansion has left its regime. That is a property of
+the formula, not an error in the transcription, and `docs/validation.md` gives
+the numbers for it. It also gives the `4 bp` the library gives up in the far
+wing by shipping Hagan's `z` instead of Obłój's `ζ`.
 
 ```bash
 PYTHONPATH=. python examples/validate.py   # prints every number in that doc
@@ -268,8 +271,12 @@ PYTHONPATH=. python examples/validate.py            # docs/validation.md, live
 pip install -e ".[plot]" && python docs/figures.py  # every figure above
 ```
 
-`validate.py` runs a Monte Carlo and takes 12–15 seconds; `figures.py` takes
-about 1.5 seconds and the other four examples well under a second each.
+`validate.py` runs a Monte Carlo and is the slow one: twelve consecutive runs
+here took 11.4–16.3 s, median 12.2 s, on an 8-core machine that was not idle
+(load average 4.3). Wall-clock is load-sensitive, so read that as tens of
+seconds rather than a promise. `figures.py` took 1.2–1.5 s over six runs, and
+the other four examples 0.05–0.17 s each over three runs apiece.
+
 Every snippet and command above runs as written, and every output block in
 this file is pasted from one of those runs. `volsurf` itself imports nothing
 but the standard library; `validate.py` and `figures.py` are the two places
