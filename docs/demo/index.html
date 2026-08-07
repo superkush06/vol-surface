@@ -180,17 +180,50 @@
   </div>
 </header>
 
+<div class="text" style="margin-top:4rem">
+  <p><strong>What the numbers are.</strong> Nobody quotes an option's price in dollars for
+    long. They quote the <em>implied volatility</em>: the single number you would have to feed
+    Black-Scholes to make it return the price actually being paid. It is a change of units, in
+    the way a bond's yield is a change of units on its price, and it makes options with
+    different strikes and dates comparable.</p>
+  <p><strong>Where on the x-axis.</strong> Strike is written as <em>log-moneyness</em>,
+    <span class="n">k = log(K / F)</span>, the strike over the forward price. So
+    <span class="n">k = 0</span> is at-the-money, negative <span class="n">k</span> is a
+    downside put, and <span class="n">k = -0.4</span> is a strike about a third below the
+    forward. Using a ratio rather than a dollar strike lets one picture serve any
+    underlying.</p>
+  <p><strong>Why it is a shape and not a number.</strong> If Black-Scholes were true, every
+    strike would imply the same volatility and the plot would be flat. It never is. Plot
+    implied vol against <span class="n">k</span> for one expiry and you get a curve that sits
+    higher in the downside wing, which the market calls the <em>smile</em>, or the smirk in
+    equities. Stack those curves across expiries and you have a <em>surface</em>. Fitting one
+    means choosing a function that passes near every quote, and this library uses
+    <strong>SVI</strong>, Gatheral's stochastic-volatility-inspired parameterisation. It
+    describes one expiry with five numbers, and it works in <em>total variance</em>
+    <span class="n">w = &sigma;&sup2;T</span> rather than volatility, because total variance is
+    the quantity that has to keep growing with maturity for a surface to make sense.</p>
+</div>
+
 <div class="text open sect-first" id="surface">
   <div class="onum">00</div>
   <span class="m">The surface &middot; fitted from quotes</span>
   <h2>Five expiries, one surface</h2>
   <p class="thesis">Twenty-one strikes at each of five expiries, quoted with noise, fitted
     slice by slice and then asked for a vol nobody quoted.</p>
-  <p>Implied volatility over log-moneyness and time. Each row is one expiry, colour is the
-    vol the fitted surface returns there, and the marked rows are the five that were actually
-    quoted. Everything between them is interpolation: the surface is a continuous object, and
-    the point of fitting one is to be able to ask it about strikes and dates the market never
-    printed.</p>
+  <p>Log-moneyness runs across, expiry runs back, and the height of the sheet is the implied
+    volatility the fitted surface returns there. The ridges picked out in dark are the five
+    expiries that were actually quoted; everything between them is the surface interpolating,
+    which is the whole point of fitting one. A desk needs a vol for a strike and a date nobody
+    printed, and the surface is the object that supplies it.</p>
+  <p>The left edge rises because downside puts trade at higher implied vol than upside calls,
+    which is the equity skew. The sheet flattens going back because uncertainty about the next
+    month is more concentrated than uncertainty about the next two years, once both are
+    expressed as an annualised rate.</p>
+  <p>Three handles reshape it, and each one refits all five slices from scratch rather than
+    redrawing a formula. <span class="n">Level</span> scales total variance, lifting the whole
+    sheet. <span class="n">Skew</span> leans SVI's rho toward the downside, steepening the left
+    wing against the right. <span class="n">Wings</span> steepens b, lifting both wings away
+    from the money. Drag the sheet itself to turn it.</p>
 </div>
 
 <div class="wide">
@@ -227,13 +260,34 @@
   <h2>Make the smile lie</h2>
   <p class="thesis">Five numbers describe one slice. Two of them, pushed far enough, produce a
     smile that no arbitrage-free market could quote.</p>
-  <p>Below are the same slice three ways. The <strong>smile</strong> is what a desk publishes.
-    <strong>g(k)</strong> is the Gatheral and Jacquier condition, which is negative exactly
-    where the slice is inadmissible. The <strong>density</strong> is what the quote implies
-    about where the stock lands, and it is the one that makes the problem obvious: a
-    probability cannot be less than zero.</p>
-  <p>Raise <span class="n">b</span> and drop <span class="n">sigma</span> and watch all three
-    react together:</p>
+  <p>A smile is not only a curve. It is a complete statement about where the stock can end
+    up. Breeden and Litzenberger showed in 1978 that the second derivative of the call price
+    with respect to strike <em>is</em> the risk-neutral probability density: the market's odds
+    on every outcome are already implied by the prices it is quoting, and you recover them by
+    differentiating twice. A smile and a probability distribution are therefore the same object
+    written two ways, and a smile with the wrong curvature describes a distribution that cannot
+    exist.</p>
+  <p>That is what makes this a trade rather than a modelling complaint. Buy one call at
+    <span class="n">K-d</span>, sell two at <span class="n">K</span>, buy one at
+    <span class="n">K+d</span>, and you own a <em>butterfly</em>. It pays out only if the stock
+    lands near <span class="n">K</span>, so it can never be worth less than nothing, and its
+    price is the implied density around <span class="n">K</span> times the width. If that
+    density goes negative the butterfly costs less than nothing: somebody is paid to hold a
+    position that cannot lose. That is the arbitrage, and it is why a fitter that ignores the
+    check is worse than useless.</p>
+  <p>Below is one slice shown three ways. The <strong>smile</strong> is what a desk publishes.
+    <strong>g(k)</strong> is a function Gatheral and Jacquier derived in 2014 whose sign tests
+    that curvature directly: wherever <span class="n">g(k)</span> is negative the implied
+    density is negative there too, and it is cheaper to evaluate than the density, which is why
+    the library checks it. The <strong>density</strong> is the same failure seen literally, as
+    a probability below zero.</p>
+  <p>The five handles are SVI's parameters. <span class="n">a</span> shifts total variance up
+    and down, <span class="n">b</span> sets how steeply both wings rise,
+    <span class="n">rho</span> tilts the curve so one wing outruns the other,
+    <span class="n">m</span> slides the smile sideways, and <span class="n">sigma</span>
+    controls how rounded the bottom is. Raise <span class="n">b</span> and drop
+    <span class="n">sigma</span>, which is to say make the wings steep and the base sharp, and
+    all three panels turn over together:</p>
 </div>
 
 <div class="wide">
@@ -280,10 +334,19 @@
   <h2>Fitting marks that are not clean</h2>
   <p class="thesis">Real quotes are not a curve. They are a curve plus whatever the market was
     doing when you took the snapshot.</p>
-  <p>Every quote below is perturbed by up to a quarter of a vol point before the fitter sees
-    it, which is roughly what a screen looks like. The fit has to find the smile through that
-    noise, and then pass both no-arbitrage checks anyway. Drag the noise up and watch the
-    residuals grow:</p>
+  <p>Volatility is measured in <em>basis points</em> here, a hundredth of a percentage point,
+    so <span class="n">25 bp</span> of noise nudges each quote by up to a quarter of a vol
+    point either way. That is roughly what a screen looks like once bid-ask and stale marks are
+    accounted for. The dots below are the perturbed quotes the fitter was handed, the lines are
+    what it returned, <span class="n">RMS err</span> in the table is the root-mean-square gap
+    between them in basis points of vol, and <span class="n">ATM vol</span> is the fitted value
+    at <span class="n">k = 0</span>.</p>
+  <p>The fit also has to pass two separate no-arbitrage tests. <em>Butterfly</em> is the
+    within-expiry one from the last section: the density along a single smile must stay
+    positive. <em>Calendar</em> is the across-expiry one: total variance at a given strike must
+    never fall as maturity grows, because a longer option contains a shorter one plus more
+    time, so quoting less total variance for more time is free money in the other direction.
+    Drag the noise up and watch the residuals grow:</p>
 </div>
 
 <div class="wide">
@@ -314,12 +377,25 @@
   <h2>A second opinion on the same quotes</h2>
   <p class="thesis">SVI is a shape fitted to a slice. SABR is a stochastic-volatility model
     whose smile comes out of an expansion. Both get pointed at the same marks here.</p>
-  <p>Hagan's formula is an asymptotic expansion, so it is at its best when the vol of vol
-    times the maturity is small and it drifts when that product grows. That is a known
-    limitation rather than a bug, and
+  <p>SABR writes down a story instead of a shape. The forward is assumed to diffuse with a
+    volatility that is itself random, and four numbers govern it.
+    <span class="n">alpha</span> is the starting volatility and sets the level.
+    <span class="n">beta</span> is the backbone: at <span class="n">1</span> the forward moves
+    in percentage terms as in Black-Scholes, at <span class="n">0</span> it moves in absolute
+    terms, and <span class="n">0.5</span> is the usual compromise. Alpha means different things
+    at different betas, because it is the volatility of the forward raised to beta rather than
+    of the forward itself, so moving beta alone throws the level off.
+    <span class="n">rho</span> is the correlation between the forward and its own volatility,
+    and it is what produces skew. <span class="n">nu</span> is the volatility of volatility,
+    and it is what produces curvature.</p>
+  <p>Hagan's formula turns those four into a smile through an asymptotic expansion, accurate
+    when <span class="n">nu&sup2;T</span> is small and drifting when it is not. That is a known
+    property rather than a bug, and
     <a href="https://github.com/superkush06/vol-surface/blob/main/docs/validation.md">validation.md</a>
-    measures it against a Monte Carlo of the SABR SDE rather than taking the formula's word
-    for it. Here both models fit the one-year slice:</p>
+    measures the drift against a Monte Carlo of the SABR SDE instead of taking the formula's
+    word for it: at the money, agreement to <span class="n">1.5 bp</span> when
+    <span class="n">nu&sup2;T = 0.16</span>, and a <span class="n">393 bp</span> gap when
+    <span class="n">nu&sup2;T = 3.2</span>. Here both models fit the one-year slice:</p>
 </div>
 
 <div class="wide">
