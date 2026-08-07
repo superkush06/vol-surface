@@ -345,7 +345,7 @@ function drawSurf() {
   c.fillText("k = +" + ks[ks.length - 1].toFixed(1), kR.sx + 4, kR.sy + 14);
   c.fillText("LOG-MONEYNESS", (kL.sx + kR.sx) / 2, Math.max(kL.sy, kR.sy) + 30);
   c.textAlign = "right";
-  c.fillText("2Y", tF.sx - 10, tF.sy);
+  c.fillText("MATURITY", tF.sx - 10, tF.sy);
   c.textAlign = "left";
   c.fillText("IMPLIED VOL " + (vmin * 100).toFixed(0) + "% to "
              + (vmax * 100).toFixed(0) + "%", 4, 14);
@@ -373,8 +373,18 @@ function surfControls() {
   const up = () => { down = false; cv.style.cursor = "grab"; };
   cv.addEventListener("pointerup", up);
   cv.addEventListener("pointercancel", up);
+  // A bounded sway, not a full rotation. Turning all the way around takes the
+  // sheet through angles where the ridges are edge-on and the expiry labels
+  // pile up, so the first figure a reader meets is sometimes its worst view.
+  // This keeps it moving without ever leaving a legible one.
+  const yaw0 = VIEW.yaw;
+  let phase = 0;
   (function spin() {
-    if (VIEW.spin && SURF && !document.hidden) { VIEW.yaw += 0.0016; drawSurf(); }
+    if (VIEW.spin && SURF && !document.hidden) {
+      phase += 0.0042;
+      VIEW.yaw = yaw0 + 0.30 * Math.sin(phase);
+      drawSurf();
+    }
     requestAnimationFrame(spin);
   })();
 }
