@@ -160,8 +160,8 @@
 <div id="prog"></div>
 
 <nav aria-label="Contents">
-  <a href="#invert"><i>00</i>Invert</a>
-  <a href="#surface"><i>01</i>Surface</a>
+  <a href="#surface"><i>00</i>Surface</a>
+  <a href="#invert"><i>01</i>Invert</a>
   <a href="#break"><i>02</i>Break it</a>
   <a href="#fit"><i>03</i>Calibrate</a>
   <a href="#sabr"><i>04</i>SABR</a>
@@ -175,8 +175,8 @@
     negative density, and a static arbitrage. SVI and SABR calibration with the
     Gatheral-Jacquier conditions enforced, computed in this tab.</p>
   <div class="banner">
-    <span><b>00</b> &nbsp;The inversion</span>
-    <span><b>01</b> &nbsp;The surface</span>
+    <span><b>00</b> &nbsp;The surface</span>
+    <span><b>01</b> &nbsp;The inversion</span>
     <span><b>02</b> &nbsp;Break it</span>
     <span><b>03</b> &nbsp;Calibrate</span>
     <span><b>04</b> &nbsp;SABR</span>
@@ -214,50 +214,8 @@
     linear in the other three, so the search is two-dimensional rather than five.</p>
 </div>
 
-<div class="text open sect-first" id="invert">
+<div class="text open sect-first" id="surface">
   <div class="onum">00</div>
-  <span class="m">The inversion &middot; where every quoted vol comes from</span>
-  <h2>Price in, volatility out</h2>
-  <p class="thesis">Before there is a surface there is one option, one price, and the number
-    you have to solve for to explain it.</p>
-  <p>Everything above rests on being able to go both ways. Black-Scholes maps a volatility to
-    a price in closed form, and that direction is easy. The direction a desk actually needs is
-    the other one: a price is on the screen, and the volatility that produced it has to be
-    solved for, because the formula cannot be inverted algebraically. This library uses Brent's
-    method, bracketed between the no-arbitrage bounds on the price.</p>
-  <p>Below, a volatility is turned into a price at every strike and then recovered back out of
-    that price. If the two halves disagree, nothing further up the page means anything, so the
-    round trip is the first thing worth checking:</p>
-</div>
-
-<div class="wide">
-  <figure><canvas id="invert-fig"></canvas></figure>
-  <div class="verdict" id="invVerdict"><b id="ivTag">checking</b><span id="ivMsg"></span></div>
-  <div class="rig">
-    <div class="ctl">
-      <div class="lab"><b>Volatility in</b><i id="vSig">20.0%</i></div>
-      <div class="sl" id="slSig" tabindex="0" role="slider" aria-label="Input volatility"></div>
-    </div>
-    <div class="ctl">
-      <div class="lab"><b>Maturity</b><i id="vTau">1.00y</i></div>
-      <div class="sl" id="slTau" tabindex="0" role="slider" aria-label="Maturity in years"></div>
-    </div>
-    <div class="ctl">
-      <div class="lab"><b>Quote noise for the screen</b><i id="vScr">25 bp</i></div>
-      <div class="sl" id="slScr" tabindex="0" role="slider" aria-label="Noise for the discrete screen"></div>
-    </div>
-  </div>
-  <div class="bar">
-    <span class="m" id="invNote">waiting</span>
-    <span class="m" id="invState"></span>
-  </div>
-</div>
-<div class="text"><div class="finding"><span class="m">Finding &middot; experiment one</span>
-  <p id="sInvert"></p></div></div>
-<div class="endrule"><div></div></div>
-
-<div class="text open" id="surface">
-  <div class="onum">01</div>
   <span class="m">The surface &middot; fitted from quotes</span>
   <h2>Five expiries, one surface</h2>
   <p class="thesis">Twenty-one strikes at each of five expiries, quoted with noise, fitted
@@ -304,6 +262,49 @@
   </div>
 </div>
 <div class="text"><p class="said" id="sSurf"></p></div>
+<div class="endrule"><div></div></div>
+
+<div class="text open" id="invert">
+  <div class="onum">01</div>
+  <span class="m">The inversion &middot; where every quoted vol comes from</span>
+  <h2>Price in, volatility out</h2>
+  <p class="thesis">Before there is a surface there is one option, one price, and the number
+    you have to solve for to explain it.</p>
+  <p>That surface is built out of numbers that have to be extracted from prices first, so it
+    is worth going back a step. Black-Scholes maps a volatility to a price in closed form, and
+    that direction is easy. The direction a desk actually needs is the other one: a price is on
+    the screen, and the volatility that produced it has to be solved for, because the formula
+    cannot be inverted algebraically. This library uses Brent's method, bracketed between the
+    no-arbitrage bounds on the price.</p>
+  <p>Below, a volatility is turned into a price at every strike and then recovered back out of
+    that price. If the two halves disagree, nothing further up the page means anything, so the
+    round trip is the first thing worth checking:</p>
+</div>
+
+<div class="wide">
+  <figure><canvas id="invert-fig"></canvas></figure>
+  <div class="verdict" id="invVerdict"><b id="ivTag">checking</b><span id="ivMsg"></span></div>
+  <div class="rig">
+    <div class="ctl">
+      <div class="lab"><b>Volatility in</b><i id="vSig">20.0%</i></div>
+      <div class="sl" id="slSig" tabindex="0" role="slider" aria-label="Input volatility"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>Maturity</b><i id="vTau">1.00y</i></div>
+      <div class="sl" id="slTau" tabindex="0" role="slider" aria-label="Maturity in years"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>Quote noise for the screen</b><i id="vScr">25 bp</i></div>
+      <div class="sl" id="slScr" tabindex="0" role="slider" aria-label="Noise for the discrete screen"></div>
+    </div>
+  </div>
+  <div class="bar">
+    <span class="m" id="invNote">waiting</span>
+    <span class="m" id="invState"></span>
+  </div>
+</div>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment 01</span>
+  <p id="sInvert"></p></div></div>
 <div class="endrule"><div></div></div>
 
 <div class="text open" id="break">
@@ -378,7 +379,7 @@
     </div>
   </div>
 </div>
-<div class="text"><div class="finding"><span class="m">Finding &middot; experiment two</span>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment 02</span>
   <p id="sBreak"></p></div></div>
 <div class="endrule"><div></div></div>
 
@@ -423,7 +424,7 @@
     <span class="m" id="fitState"></span>
   </div>
 </div>
-<div class="text"><div class="finding"><span class="m">Finding &middot; experiment three</span>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment 03</span>
   <p id="sFit"></p></div></div>
 <div class="endrule"><div></div></div>
 
@@ -485,7 +486,7 @@
     <span class="m" id="sabrState"></span>
   </div>
 </div>
-<div class="text"><div class="finding"><span class="m">Finding &middot; experiment four</span>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment 04</span>
   <p id="sSabr"></p></div></div>
 <div class="endrule"><div></div></div>
 
@@ -507,6 +508,6 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"
         integrity="sha384-i3R37b3tF+HWudsUf1VSEOY2YxwSNMqY8DQa9Z0O3xh+NkJ9o+yjcGyIi5huj+nB"
         crossorigin="anonymous"></script>
-<script src="demo.js?v=215e22bd"></script>
+<script src="demo.js?v=e68c758f"></script>
 </body>
 </html>

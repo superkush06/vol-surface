@@ -274,7 +274,7 @@ function fitView(w, h, zmax, padX, padY) {
 }
 
 function drawSurf() {
-  const H = 470;
+  const H = 540;
   const { c, w } = ctx($("#surf"), H);
   if (!SURF) {
     c.fillStyle = QUIET; c.font = MONO(11, 500);
@@ -289,7 +289,7 @@ function drawSurf() {
   const NY = (j) => -1 + 2 * (Math.log(ts[j]) - lt0) / (lt1 - lt0);
   const ZMAX = 0.80;
   const NZ = (v) => ZMAX * (v - vmin) / (vmax - vmin);
-  fitView(w, H, ZMAX, 40, 30);
+  fitView(w, H, ZMAX, 34, 22);
 
   // the floor, so the sheet has something to sit above
   c.strokeStyle = HAIR; c.lineWidth = 1;
