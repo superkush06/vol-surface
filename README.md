@@ -5,7 +5,7 @@
 A detailed record of experiments and visualisations on implied-volatility
 surfaces, with the calibration code that produced them.
 
-### ▶ [**Click here to run it in your browser**](https://superkush06.github.io/vol-surface/demo/)
+### ▶ Run it in your browser: [**superkush06.github.io/vol-surface/demo**](https://superkush06.github.io/vol-surface/demo/)
 
 | | | |
 |---|---|---|
