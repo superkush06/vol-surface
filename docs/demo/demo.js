@@ -212,7 +212,7 @@ function sayInvert() {
      <span class="n">${one.greeks.vega.toFixed(1)}</span>.
      The dots along the bottom are a different check: <span class="n">butterfly_violations</span>
      and <span class="n">calendar_violations</span> read strikes and vols directly, with no
-     model in between, which is the test you run on a screen before deciding whether it is
+     model in between, which is the test you run on a screen before deciding whether it's
      worth fitting at all. Push the noise up and watch them start firing, well before any
      fitter is involved.`;
 }
@@ -246,7 +246,7 @@ const VIEW = { yaw: -0.62, pitch: 0.62, spin: true };
 
 // Raw orthographic projection into unscaled units. The fit to the canvas is
 // worked out separately from the corners, so the sheet stays framed however
-// far it is turned instead of walking off the edge.
+// far it's turned instead of walking off the edge.
 function raw(x, y, z) {
   const cy = Math.cos(VIEW.yaw), sy = Math.sin(VIEW.yaw);
   const cp = Math.cos(VIEW.pitch), sp = Math.sin(VIEW.pitch);
@@ -477,7 +477,7 @@ function panel(c, x, y, w, h, ks, ys, opts) {
     c.strokeStyle = INK; c.globalAlpha = .35; c.setLineDash([3, 3]);
     c.beginPath(); c.moveTo(x, yz); c.lineTo(x + w, yz); c.stroke();
     c.setLineDash([]); c.globalAlpha = 1;
-    // everything below zero is the part that cannot be true
+    // everything below zero is the part that can't be true
     c.fillStyle = WARN; c.globalAlpha = .16;
     c.beginPath(); let open = false;
     ks.forEach((k, i) => {
@@ -543,7 +543,7 @@ function sayBreak() {
   if (!SL.defined) {
     $("#vTag").textContent = "undefined";
     $("#vMsg").textContent =
-      "Total variance has gone non-positive, so this is not a smile at all.";
+      "Total variance has gone non-positive, so this isn't a smile at all.";
   } else if (SL.arb_free) {
     $("#vTag").textContent = "admissible";
     $("#vMsg").innerHTML =
@@ -563,11 +563,11 @@ function sayBreak() {
     : `Between k = <span class="n">${SL.bad_from}</span> and
        <span class="n">${SL.bad_to}</span> the implied density is negative, which is
        <span class="n">${(SL.bad_frac * 100).toFixed(0)}%</span> of the strip. A negative
-       density is not a modelling inconvenience: it means a butterfly spread struck across
+       density isn't a modelling inconvenience: it means a butterfly spread struck across
        that region has a negative cost and a non-negative payoff, so somebody can be paid to
-       take it. That is why <span class="n">fit_svi_slice</span> checks
+       take it. That's why <span class="n">fit_svi_slice</span> checks
        <span class="n">g(k)</span> before it returns, and why a surface that quietly fits the
-       marks better is not automatically the one you want.`;
+       marks better isn't automatically the one you want.`;
 }
 
 async function refreshSlice() {
@@ -835,7 +835,7 @@ document.fonts.ready.then(redraw);
     // ImportError with nothing pointing at the cause.
     const fresh = { cache: "no-store" };
     const stamp = await (await fetch("bundle.json", fresh)).json();
-    // The zip's hash cannot version vs.py, which is fetched separately and is
+    // The zip's hash can't version vs.py, which is fetched separately and is
     // not in it. Carry the driver's own hash so editing it busts the cache.
     const v = `?v=${stamp.sha}${stamp.driver ? "-" + stamp.driver : ""}`;
     py.unpackArchive(await (await fetch("volsurf-pkg.zip" + v, fresh)).arrayBuffer(), "zip");

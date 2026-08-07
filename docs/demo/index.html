@@ -186,7 +186,7 @@
 <div class="text" style="margin-top:4rem">
   <p><strong>What the numbers are.</strong> Nobody quotes an option's price in dollars for
     long. They quote the <em>implied volatility</em>: the single number you would have to feed
-    Black-Scholes to make it return the price actually being paid. It is a change of units, in
+    Black-Scholes to make it return the price actually being paid. It's a change of units, in
     the way a bond's yield is a change of units on its price, and it makes options with
     different strikes and dates comparable.</p>
   <p><strong>Where on the x-axis.</strong> Strike is written as <em>log-moneyness</em>,
@@ -195,11 +195,11 @@
     downside put, and <span class="n">k = -0.4</span> is a strike about a third below the
     forward. Using a ratio rather than a dollar strike lets one picture serve any
     underlying.</p>
-  <p><strong>Why it is a shape and not a number.</strong> If Black-Scholes were true, every
+  <p><strong>Why it's a shape and not a number.</strong> If Black-Scholes were true, every
     strike would imply the same volatility and the plot would be flat. It never is. Plot
     implied vol against <span class="n">k</span> for one expiry and you get a curve. In FX it
     is roughly symmetric and genuinely earns the name <em>smile</em>; in equity index options
-    it is monotone decreasing across most of the traded range, so <em>skew</em> or
+    it's monotone decreasing across most of the traded range, so <em>skew</em> or
     <em>smirk</em> is the accurate word and the one used below, because downside puts are
     persistently bid for crash protection. Both are slices of the same object. Stack them
     across expiries and you have a <em>surface</em>. Fitting one
@@ -274,7 +274,7 @@
     is worth going back a step. Black-Scholes maps a volatility to a price in closed form, and
     that direction is easy. The direction a desk actually needs is the other one: a price is on
     the screen, and the volatility that produced it has to be solved for, because the formula
-    cannot be inverted algebraically. This library uses Brent's method, bracketed between the
+    can't be inverted algebraically. This library uses Brent's method, bracketed between the
     no-arbitrage bounds on the price.</p>
   <p>Below, a volatility is turned into a price at every strike and then recovered back out of
     that price. If the two halves disagree, nothing further up the page means anything, so the
@@ -313,27 +313,27 @@
   <h2>Break the density</h2>
   <p class="thesis">Five numbers describe one slice. Two of them, pushed far enough, produce a
     slice that admits static arbitrage, and the library refuses to return it.</p>
-  <p>A slice is not only a curve. It is a complete statement about the risk-neutral
+  <p>A slice isn't only a curve. It's a complete statement about the risk-neutral
     distribution of the terminal price. Breeden and Litzenberger showed in 1978 that
     <span class="n">&part;&sup2;C/&part;K&sup2;</span>, the second derivative of the
     undiscounted call price with respect to strike, <em>is</em> the risk-neutral density: the
     market's odds on every outcome are already implied by the prices it quotes, and you
     recover them by differentiating twice. A slice and a distribution are the same object
     written two ways, and a slice with the wrong convexity in strike describes a measure that
-    is not a probability measure.</p>
-  <p>That is what makes this a trade rather than a modelling complaint. Buy one call at
+    isn't a probability measure.</p>
+  <p>That's what makes this a trade rather than a modelling complaint. Buy one call at
     <span class="n">K-d</span>, sell two at <span class="n">K</span>, buy one at
     <span class="n">K+d</span>, and you own a <em>butterfly</em>. It pays out only if the stock
     lands near <span class="n">K</span>, so it can never be worth less than nothing, and its
     price is the implied density around <span class="n">K</span> times the width. If that
     density goes negative the butterfly costs less than nothing: somebody is paid to hold a
-    position that cannot lose. That is the arbitrage, and it is why a fitter that ignores the
+    position that can't lose. That's the arbitrage, and it's why a fitter that ignores the
     check is worse than useless.</p>
   <p>Below is one slice shown three ways. The <strong>smile</strong> is what a desk publishes.
     <strong>g(k)</strong> is the function Gatheral and Jacquier derived in 2014 from
     <span class="n">w</span> and its first two derivatives in <span class="n">k</span>. Its
     sign is the condition itself: <span class="n">g(k) &ge; 0</span> across the strip is
-    equivalent to a non-negative density, and it is far cheaper than differentiating prices,
+    equivalent to a non-negative density, and it's far cheaper than differentiating prices,
     which is why the library checks it rather than the density. The <strong>density</strong> is the same failure seen literally, as
     a probability below zero.</p>
   <p>The five handles are SVI's parameters. <span class="n">a</span> shifts total variance up
@@ -386,12 +386,12 @@
 <div class="text open" id="fit">
   <div class="onum">03</div>
   <span class="m">Calibrate &middot; noisy quotes</span>
-  <h2>Fitting marks that are not clean</h2>
-  <p class="thesis">Real quotes are not a curve. They are a curve plus whatever the market was
+  <h2>Fitting marks that aren't clean</h2>
+  <p class="thesis">Real quotes aren't a curve. They are a curve plus whatever the market was
     doing when you took the snapshot.</p>
   <p>Volatility is measured in <em>basis points</em> here, a hundredth of a percentage point,
     so <span class="n">25 bp</span> of noise nudges each quote by up to a quarter of a vol
-    point either way. That is roughly what a screen looks like once bid-ask and stale marks are
+    point either way. That's roughly what a screen looks like once bid-ask and stale marks are
     accounted for. The dots below are the perturbed quotes the fitter was handed, the lines are
     what it returned, <span class="n">RMS err</span> in the table is the root-mean-square gap
     between them in basis points of vol, and <span class="n">ATM vol</span> is the fitted value
@@ -435,18 +435,18 @@
   <p class="thesis">SVI is a shape fitted to a slice. SABR is a stochastic-volatility model
     whose smile comes out of an expansion. Both get pointed at the same marks here.</p>
   <p>SABR writes down a story instead of a shape. The forward is assumed to diffuse with a
-    volatility that is itself random, and four numbers govern it.
+    volatility that's itself random, and four numbers govern it.
     <span class="n">alpha</span> is the starting volatility and sets the level.
     <span class="n">beta</span> is the backbone: at <span class="n">1</span> the forward moves
     in percentage terms as in Black-Scholes, at <span class="n">0</span> it moves in absolute
     terms, and <span class="n">0.5</span> is the usual compromise. Alpha means different things
-    at different betas, because it is the volatility of the forward raised to beta rather than
+    at different betas, because it's the volatility of the forward raised to beta rather than
     of the forward itself, so moving beta alone throws the level off.
     <span class="n">rho</span> is the correlation between the forward and its own volatility,
-    and it is what produces skew. <span class="n">nu</span> is the volatility of volatility,
-    and it is what produces curvature.</p>
+    and it's what produces skew. <span class="n">nu</span> is the volatility of volatility,
+    and it's what produces curvature.</p>
   <p>Hagan's formula turns those four into a smile through an asymptotic expansion, accurate
-    when <span class="n">nu&sup2;T</span> is small and drifting when it is not. That is a known
+    when <span class="n">nu&sup2;T</span> is small and drifting when it isn't. That's a known
     property rather than a bug, and
     <a href="https://github.com/superkush06/vol-surface/blob/main/docs/validation.md">validation.md</a>
     measures the drift against a Monte Carlo of the SABR SDE instead of taking the formula's
@@ -508,6 +508,6 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"
         integrity="sha384-i3R37b3tF+HWudsUf1VSEOY2YxwSNMqY8DQa9Z0O3xh+NkJ9o+yjcGyIi5huj+nB"
         crossorigin="anonymous"></script>
-<script src="demo.js?v=60c81923"></script>
+<script src="demo.js?v=0af473eb"></script>
 </body>
 </html>

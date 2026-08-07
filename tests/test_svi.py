@@ -123,3 +123,16 @@ def test_svi_min_g_validates_grid():
         svi_min_g(p, 1.0, -1.0)
     with pytest.raises(ValueError):
         svi_min_g(p, -1.0, 1.0, n=1)
+
+
+def test_a_narrow_scan_certifies_the_standard_counterexample():
+    """The range is the caller's to choose, and choosing it badly says yes.
+
+    Vogt's slice arbitrages at k = 0.88. Screened over the strikes a desk
+    would actually have quoted it comes back clean, which is the trap the
+    docstring on `svi_butterfly_arbitrage_free` warns about. Pinning it here
+    means nobody narrows a screen elsewhere in the repo without this failing.
+    """
+    assert svi_butterfly_arbitrage_free(VOGT, -0.55, 0.55)
+    assert not svi_butterfly_arbitrage_free(VOGT, -1.5, 1.5)
+    assert svi_min_g(VOGT, -1.5, 1.5, n=3001)[1] > 0.55

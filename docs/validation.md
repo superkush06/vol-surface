@@ -1,8 +1,8 @@
 # What has been checked against what
 
-A library that only tests itself against itself tells you it is
+A library that only tests itself against itself tells you it's
 self-consistent. This page is the other kind of evidence: every row below
-compares `volsurf` to something it does not control: a closed form written
+compares `volsurf` to something it doesn't control: a closed form written
 out in the source paper, a limit the model has to collapse to, a Monte-Carlo
 simulation of the SDE the formula is only an approximation *of*, or a second
 screen built on a different principle.
@@ -128,7 +128,7 @@ g(+∞) = 1/4 - b²(1+ρ)²/16,     g(-∞) = 1/4 - b²(1-ρ)²/16
 
 which is non-negative exactly when the wing slope is at most 2, the bound
 Lee's (2004) moment formula puts on the asymptotic slope of total variance.
-The library's `svi_min_g` is a local grid scan, and it is reassuring that it
+The library's `svi_min_g` is a local grid scan, and it's reassuring that it
 agrees with the global asymptotic statement instead of contradicting it: 300
 out of 300 random slices with `b(1+|ρ|) > 2` are caught.
 
@@ -143,14 +143,14 @@ of zero every time.
 
 ## Where we differ
 
-**Hagan's formula is not the SABR model, and at large `ν²T` the difference is
+**Hagan's formula isn't the SABR model, and at large `ν²T` the difference is
 enormous.** The third block above is the honest picture: at `ν²T = 3.2` the
 expansion overstates the 50-strike vol by eleven vol points. Nothing is wrong
 with the transcription. The same code is exact to `2.6e-15` against the
-paper's own at-the-money formula. It is the expansion that has left its
+paper's own at-the-money formula. It's the expansion that has left its
 regime, and `sabr_iv` reproduces the expansion, faithfully, including where
-the expansion is wrong. If you are calibrating five-year options with a
-vol-of-vol near 1, this library will not warn you, and it should not be the
+the expansion is wrong. If you're calibrating five-year options with a
+vol-of-vol near 1, this library won't warn you, and it should not be the
 tool you reach for.
 
 **We ship Hagan's `z`, not Obłój's `ζ`.** Obłój (2008) points out that
@@ -178,26 +178,26 @@ implements the original. What that costs, at `β = 0.5`:
 ```
 
 Four basis points of vol in the far wing at a two-to-one strike ratio, and
-zero at the money. That is small next to the expansion error above, which is
-why the original is still what ships. It is a real, documented
+zero at the money. That's small next to the expansion error above, which is
+why the original is still what ships. It's a real, documented
 difference from a reference, and it belongs here rather than in a changelog
 nobody reads.
 
-**Total mass is not an arbitrage test.** The Vogt slice integrates to exactly
+**Total mass isn't an arbitrage test.** The Vogt slice integrates to exactly
 `1` and prices the forward to `1.1e-16`, and it still admits butterfly
 arbitrage. A density with a hole in it and a compensating bump elsewhere
 normalises perfectly well. That row in the table is evidence that the density
 formula is right, not evidence that the slice is admissible; only `g(k) ≥ 0`
 is that.
 
-**What is not validated here.** The SVI fitter's behaviour on *noisy* data is
+**What isn't validated here.** The SVI fitter's behaviour on *noisy* data is
 checked only for self-consistency, because there is no external benchmark for "the
 right SVI parameters given noisy quotes", because there is no right answer.
 The comparison against the SDE is done at `β = 1`, where the conditional law
 of `F_T` is exactly lognormal; for `β ≠ 1` the conditional law is CEV and
-pricing it needs a non-central chi-square, which is not in this library, so
+pricing it needs a non-central chi-square, which isn't in this library, so
 those cases rest on the closed-form limits only. And there is no comparison
-against a commercial pricer, because I do not have one to compare against.
+against a commercial pricer, because I don't have one to compare against.
 
 ---
 

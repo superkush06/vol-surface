@@ -25,8 +25,8 @@ library only at run time, no scipy.
 A smile is one implied vol per strike, and those vols together imply a
 probability distribution for the terminal price. A careless fit can imply a
 distribution that goes negative over a band of strikes, and a plain fitter
-will not tell you it happened. So every SVI fit here is checked against the
-Gatheral–Jacquier butterfly condition before it is returned, every surface is
+won't tell you it happened. So every SVI fit here is checked against the
+Gatheral–Jacquier butterfly condition before it's returned, every surface is
 checked for calendar monotonicity, and the discrete arbitrage screen makes you
 pass the forward instead of guessing one.
 
@@ -50,10 +50,10 @@ library reports that number and lets you decide.
 git clone https://github.com/superkush06/vol-surface.git
 cd vol-surface
 pip install -e ".[dev]"
-pytest          # 94 tests
+pytest          # 95 tests
 ```
 
-The `dev` extra pulls in pytest, ruff, and numpy. numpy is not used by
+The `dev` extra pulls in pytest, ruff, and numpy. numpy isn't used by
 `volsurf` itself, only by `examples/validate.py`. The figures need a second
 extra, `.[plot]`; see [Reproducing everything](#reproducing-everything).
 
@@ -103,8 +103,8 @@ svi_min_g(fit, -0.8, 0.8)
 
 Four of the five parameters come back to seven significant figures or better
 ($\rho$ and $b$ to eight); $a$ comes back to six, at a relative error under
-$5\times10^{-7}$. That is not what a five-parameter smile fit usually gives,
-and it is not because the optimiser is good.
+$5\times10^{-7}$. That isn't what a five-parameter smile fit usually gives,
+and it isn't because the optimiser is good.
 
 ![single-start versus quasi-explicit calibration](docs/calibration.png)
 
@@ -179,7 +179,7 @@ both arbitrage checks, and a vol at nine months, where nobody quoted.
 
 ## Checked against external references
 
-Testing a library against itself only shows it is self-consistent.
+Testing a library against itself only shows it's self-consistent.
 [`docs/validation.md`](docs/validation.md) is the other kind of evidence: each
 row compares `volsurf` to something outside it: a closed form stated in the
 source paper, a limit the model has to collapse to, a Monte Carlo of the SDE
@@ -198,7 +198,7 @@ first. A few of the rows:
 The third row is the one to read. `sabr_iv` matches Hagan's own at-the-money
 expression to fourteen digits, which is what a max relative error of `2.6e-15`
 buys, and is four vol points away from the model that expression approximates,
-because at `ν²T = 3.2` the expansion has left its regime. That is a property of
+because at `ν²T = 3.2` the expansion has left its regime. That's a property of
 the formula, not an error in the transcription, and `docs/validation.md` gives
 the numbers for it. It also gives the `4 bp` the library gives up in the far
 wing by shipping Hagan's `z` instead of Obłój's `ζ`.
@@ -221,7 +221,7 @@ vol. Downstream, `optune` prices and differentiates contracts (trees, Monte
 Carlo, exotic payoffs, AAD Greeks) and needs one vol per contract; `risk`
 turns a vector of scenario P&L into VaR and expected shortfall. Neither knows
 how to turn a screen of quotes into a vol at a strike and expiry nobody
-listed. That is what this repo does, and it is all it does.
+listed. That's what this repo does, and it's all it does.
 
 `examples/greeks_handoff.py` walks the join end to end on an invented but
 plausible quote screen: fit, screen for both arbitrages, mark a five-position
@@ -247,7 +247,7 @@ is to show the shape of the handoff. The shocks are applied to the SVI
 parameters rather than to the vols, so every shocked surface can be run back
 through the same arbitrage screens; the last column is that check.
 
-## What is in here
+## What's in here
 
 | Module | What it gives you |
 | --- | --- |
@@ -262,23 +262,23 @@ through the same arbitrage screens; the last column is that check.
 The derivations, the reason each algorithm was chosen, and the references are
 in [`docs/theory.md`](docs/theory.md).
 
-## What it does not do
+## What it doesn't do
 
 - **Enforce the calendar condition.** Slices are fitted independently and the
   ordering is checked afterwards. Enforcing it during calibration means a fit
-  coupled across expiries. SSVI is the usual route, and it is not here.
+  coupled across expiries. SSVI is the usual route, and it isn't here.
 - **Guarantee an arbitrage-free fit.** `butterfly_penalty` is a soft penalty,
-  not a projection, and the difference is not academic. On the Vogt slice it
+  not a projection, and the difference isn't academic. On the Vogt slice it
   pulls `min g(k)` from `-0.0328` to within `1e-4` of zero, better than two
-  orders of magnitude, but it does not fix the sign. The residual is the
+  orders of magnitude, but it doesn't fix the sign. The residual is the
   leftover of a penalty term rather than a constraint, so where it lands
   depends on the optimiser's path: this repository's CI sees `+6.6e-06` on
   macOS with CPython 3.12 and `-8.3e-05` on macOS with 3.11, from identical
   source. Non-negative in practice, not by construction, and if you need the
-  guarantee you need a projection or an SSVI parameterisation that is
+  guarantee you need a projection or an SSVI parameterisation that's
   arbitrage-free by design.
 - **Vectorise.** Everything is scalar Python. Calibration is comfortable; a
-  Monte Carlo inner loop would not be.
+  Monte Carlo inner loop wouldn't be.
 - **Local volatility.** Dupire from `w(k, T)` is the natural next thing and
   the total-variance machinery is already in place, but the piecewise-linear
   interpolation in `T` is too coarse a `dw/dT` to be worth shipping.
@@ -295,7 +295,7 @@ pip install -e ".[plot]" && python docs/figures.py  # every figure above
 ```
 
 `validate.py` runs a Monte Carlo and is the slow one: twelve consecutive runs
-here took 11.4–16.3 s, median 12.2 s, on an 8-core machine that was not idle
+here took 11.4–16.3 s, median 12.2 s, on an 8-core machine that wasn't idle
 (load average 4.3). Wall-clock is load-sensitive, so read that as tens of
 seconds rather than a promise. `figures.py` took 1.2–1.5 s over six runs, and
 the other four examples 0.05–0.17 s each over three runs apiece.

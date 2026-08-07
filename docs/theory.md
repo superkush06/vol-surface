@@ -6,9 +6,9 @@ makes a parameterisation admissible, and why each algorithm here was chosen
 over the obvious alternative. Every formula below appears in the module named
 beside it.
 
-Whether the code actually implements it is a separate question, answered in
+Whether the code actually implements it's a separate question, answered in
 [`docs/validation.md`](validation.md): every formula here that has a published
-closed form, a degenerate limit, or a simulable model behind it is compared
+closed form, a degenerate limit, or a simulable model behind it's compared
 against one there.
 
 ---
@@ -216,7 +216,7 @@ constraint rather than a projection onto the arbitrage-free set: it buys
 non-negativity of the density with least-squares error, and the README's lead
 figure quantifies the exchange rate on the standard pathological slice.
 
-## 9. What is deliberately not here
+## 9. What's deliberately not here
 
 - **Calendar *enforcement*.** Slices are fitted independently and the
   calendar condition is checked afterwards. Enforcing it during calibration

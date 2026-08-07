@@ -133,8 +133,17 @@ def svi_butterfly_arbitrage_free(p: SVIRawParams, k_min: float, k_max: float,
                                  *, n: int = 201, tol: float = 0.0) -> bool:
     """True iff g(k) >= -tol on a uniform n-point grid over [k_min, k_max].
 
-    Grid-based, so it can miss a violation narrower than the grid spacing;
-    tighten `n` on slices with small `sigma` (a sharp elbow makes g dip in a
-    correspondingly narrow window).
+    Two ways this can say yes about a slice that arbitrages, both on the
+    caller:
+
+    The grid can step over a violation narrower than its spacing, so raise
+    `n` on slices with small `sigma`, where a sharp elbow makes g dip in a
+    correspondingly narrow window.
+
+    More easily missed, the answer says nothing outside [k_min, k_max], and
+    butterfly violations like living in the wings. Vogt's slice, the standard
+    counterexample, passes on [-0.55, 0.55] and only fails once the scan
+    reaches k = 0.88. Screening a fitted slice over the strikes you were
+    quoted is therefore not enough; go wider than the quotes.
     """
     return svi_min_g(p, k_min, k_max, n=n)[0] >= -tol

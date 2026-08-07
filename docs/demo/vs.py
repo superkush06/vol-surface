@@ -43,6 +43,13 @@ LABEL = {1 / 12: "1M", 0.25: "3M", 0.5: "6M", 1.0: "1Y", 2.0: "2Y"}
 NOISE_BPS = 25.0
 KLO, KHI = -0.55, 0.55
 
+# The screen deliberately looks wider than the plot. A slice can be clean
+# everywhere a strike was quoted and still admit a butterfly out in the wing,
+# which is exactly what Vogt's slice does: it passes on [-0.55, 0.55] and only
+# fails once the scan reaches k = 0.88. Checking only where the quotes are
+# would certify the repo's own counterexample as sound.
+SLO, SHI = -1.5, 1.5
+
 
 # ---------------------------------------------------------------------------
 # 01: one slice, and the three things it implies
@@ -80,7 +87,7 @@ def slice_curves(a, b, rho, m, sigma, T=1.0, n=161):
     # to the sampled grid and report the collapse rather than throwing.
     ok = [v for v in g if v is not None]
     try:
-        gmin, kmin = svi_min_g(p, KLO, KHI)
+        gmin, kmin = svi_min_g(p, SLO, SHI, n=601)
     except ValueError:
         gmin = min(ok) if ok else float("nan")
         kmin = ks[g.index(gmin)] if ok else 0.0
@@ -160,7 +167,7 @@ def fit_surface(noise_bps=NOISE_BPS, seed=20260727):
         "rows": rows,
         "noise_bps": noise_bps,
         "calendar_free": _try(surf.calendar_arbitrage_free),
-        "butterfly_free": _try(lambda: surf.butterfly_arbitrage_free(KLO, KHI)),
+        "butterfly_free": _try(lambda: surf.butterfly_arbitrage_free(SLO, SHI, n=601)),
         "worst_bp": max(r["rms_bp"] for r in rows),
         "best_bp": min(r["rms_bp"] for r in rows),
     }
@@ -206,7 +213,7 @@ def surface_grid(nk=49, nt=41, level=1.0, skew=1.0, wings=1.0):
         "quoted_T": [round(t, 5) for t in TRUTH],
         "labels": [LABEL[t] for t in TRUTH],
         "calendar_free": _try(surf.calendar_arbitrage_free),
-        "butterfly_free": _try(lambda: surf.butterfly_arbitrage_free(KLO, KHI)),
+        "butterfly_free": _try(lambda: surf.butterfly_arbitrage_free(SLO, SHI, n=601)),
         "atm_1y": _try(lambda: round(surf.iv(0.0, 1.0), 5)),
         "skew_1y": _try(lambda: round(surf.iv(-0.2, 1.0) - surf.iv(0.2, 1.0), 5)),
     }
