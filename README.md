@@ -25,7 +25,7 @@ what that means in prices — the density is negative for $0.642 < k < 1.256$
 (the same interval the validation table reports below), so a butterfly struck
 there has non-negative payoff and negative cost. The dashed green curve is the
 same fit run with `butterfly_penalty=1e5`: its density is non-negative
-everywhere, and the smile moves at most 1.83 vol points to get there. The
+everywhere, and the smile moves by under 2 vol points to get there. The
 library reports that number and lets you decide.
 
 ## Install
@@ -86,8 +86,8 @@ svi_min_g(fit, -0.8, 0.8)
 ```
 
 Four of the five parameters come back to seven significant figures or better
-($\rho$ and $b$ to eight); $a$ comes back to six, at a relative error of
-$1.9\times10^{-7}$. That is not what a five-parameter smile fit usually gives,
+($\rho$ and $b$ to eight); $a$ comes back to six, at a relative error under
+$5\times10^{-7}$. That is not what a five-parameter smile fit usually gives,
 and it is not because the optimiser is good.
 
 ![single-start versus quasi-explicit calibration](docs/calibration.png)

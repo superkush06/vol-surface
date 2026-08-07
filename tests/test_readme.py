@@ -131,9 +131,11 @@ def test_the_recovery_accuracy_claim() -> None:
         assert digits >= 7, f"{name} recovered to only {digits} significant figures"
     assert matching_sig_figs(fit.a, truth.a) == 6
 
+    # Also a bound, for the same reason: this is a fitted value, and pinning
+    # its first decimal would break on any CPython whose optimiser path differs.
     rel_a = abs(fit.a - truth.a) / truth.a
-    claimed = literal(r"relative error of\s*\$([\d.]+)\\times10\^\{-7\}\$")
-    assert float(f"{rel_a * 1e7:.1f}") == claimed
+    bound = literal(r"relative error under\s*\$([\d.]+)\\times10\^\{-7\}\$")
+    assert rel_a * 1e7 < bound, f"a recovered to {rel_a * 1e7:.2f}e-7, claimed under {bound}e-7"
 
 
 def test_screen_block_on_the_vogt_slice() -> None:
@@ -197,10 +199,15 @@ def test_hero_caption() -> None:
     assert svi_density(lo - 0.002, VOGT) > 0.0 and svi_density(lo + 0.002, VOGT) < 0.0
     assert svi_density(hi - 0.002, VOGT) < 0.0 and svi_density(hi + 0.002, VOGT) > 0.0
 
+    # A bound, not an equality. `moved` comes out of the penalised fit, and
+    # this module's own rule is that optimiser output is compared loosely: the
+    # search path differs enough between CPython versions to move the second
+    # decimal (1.83 on 3.12, 1.81 on 3.11), which says nothing about the fit.
     repaired, ks = _repaired_vogt_fit()
     moved = max(abs(math.sqrt(svi_w(k, repaired)) - math.sqrt(svi_w(k, VOGT))) for k in ks)
-    assert float(f"{moved * 100:.2f}") == literal(
-        r"the smile moves at most ([\d.]+) vol points")
+    bound = literal(r"the smile moves by under ([\d.]+) vol points")
+    assert 0.0 < moved * 100 < bound, (
+        f"repair moved the smile {moved * 100:.2f} vol points, claimed under {bound}")
 
 
 def test_the_soft_penalty_caveat() -> None:
