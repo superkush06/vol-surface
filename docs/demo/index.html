@@ -173,7 +173,7 @@
   <p class="dek">An implied-volatility slice is a claim about the risk-neutral distribution of
     the terminal price. Push the parameters far enough and the claim becomes incoherent:
     negative density, and a static arbitrage. SVI and SABR calibration with the
-    Gatheral-Jacquier conditions enforced, computed in this tab.</p>
+    Gatheral-Jacquier conditions screened on every fit, computed in this tab.</p>
   <div class="banner">
     <span><b>00</b> &nbsp;The surface</span>
     <span><b>01</b> &nbsp;The inversion</span>
@@ -312,7 +312,8 @@
   <span class="m">Break it &middot; the arbitrage check</span>
   <h2>Break the density</h2>
   <p class="thesis">Five numbers describe one slice. Two of them, pushed far enough, produce a
-    slice that admits static arbitrage, and the library refuses to return it.</p>
+    slice that admits static arbitrage, and the library says so instead of
+    handing it back quietly.</p>
   <p>A slice isn't only a curve. It's a complete statement about the risk-neutral
     distribution of the terminal price. Breeden and Litzenberger showed in 1978 that
     <span class="n">&part;&sup2;C/&part;K&sup2;</span>, the second derivative of the
@@ -508,6 +509,6 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"
         integrity="sha384-i3R37b3tF+HWudsUf1VSEOY2YxwSNMqY8DQa9Z0O3xh+NkJ9o+yjcGyIi5huj+nB"
         crossorigin="anonymous"></script>
-<script src="demo.js?v=0af473eb"></script>
+<script src="demo.js?v=4ae46ceb"></script>
 </body>
 </html>

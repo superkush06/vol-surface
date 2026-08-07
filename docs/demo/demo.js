@@ -553,7 +553,7 @@ function sayBreak() {
     $("#vTag").textContent = "arbitrage";
     $("#vMsg").innerHTML =
       `g(k) reaches <span class="n">${SL.min_g.toFixed(3)}</span> at k = ` +
-      `<span class="n">${SL.min_g_k.toFixed(2)}</span>. The fitter rejects this.`;
+      `<span class="n">${SL.min_g_k.toFixed(2)}</span>. The fitter flags this.`;
   }
   $("#sBreak").innerHTML = SL.arb_free
     ? `This slice is admissible. g(k) stays positive across the whole strip, the density is
