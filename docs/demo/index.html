@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>vol-surface: a volatility smile you can break</title>
+<meta name="description" content="An interactive volatility surface. Drag the five SVI parameters until the smile implies negative probability, and watch the arbitrage check catch it. Real calibration code compiled to WebAssembly, running in your browser." />
+<meta name="theme-color" content="#F7F4EF" />
+<meta name="author" content="Kushagra Behl" />
+<link rel="canonical" href="https://superkush06.github.io/vol-surface/demo/" />
+
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="vol-surface" />
+<meta property="og:url" content="https://superkush06.github.io/vol-surface/demo/" />
+<meta property="og:title" content="vol-surface: a volatility smile you can break" />
+<meta property="og:description" content="Drag the five SVI parameters until the smile implies negative probability, and watch the no-arbitrage check catch it. Real calibration code, compiled to WebAssembly and running in your browser." />
+<meta property="og:image" content="https://superkush06.github.io/vol-surface/demo/card.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="A volatility smile, the Gatheral-Jacquier butterfly function beneath it dipping below zero, and a risk-neutral density with a shaded region of negative probability." />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="vol-surface: a volatility smile you can break" />
+<meta name="twitter:description" content="Drag the five SVI parameters until the smile implies negative probability, and watch the no-arbitrage check catch it." />
+<meta name="twitter:image" content="https://superkush06.github.io/vol-surface/demo/card.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300..600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:  #F7F4EF;
+    --ink:    #35322C;
+    --quiet:  #8B857A;
+    --hair:   #DAD4C9;
+    --calm:   #1B6CA8;
+    --warn:   #B0341F;
+    --gold:   #C08A1B;
+  }
+  html { -webkit-text-size-adjust: 100% }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: Newsreader, "Iowan Old Style", Georgia, serif;
+    font-variant-numeric: tabular-nums; font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  .text { max-width: 40rem; margin: 0 auto; padding: 0 1.5rem }
+  .wide { max-width: 52rem; margin: 0 auto; padding: 0 1.5rem }
+
+  .m { font-family: "IBM Plex Mono", Menlo, monospace; text-transform: uppercase;
+       letter-spacing: .085em; font-size: .69rem; font-weight: 500; color: var(--quiet) }
+  .n { font-family: "IBM Plex Mono", Menlo, monospace; font-size: .88em; font-weight: 500 }
+
+  p { font-size: 1.25rem; line-height: 1.62; margin: 1.5rem 0 }
+  strong { font-weight: 600 }
+  a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--hair) }
+  a:hover { border-bottom-color: var(--ink) }
+
+  .hero { position: relative; padding-top: 5.5rem }
+  .hero h1 { font-size: clamp(2.15rem, 5.6vw, 4.1rem); line-height: 1.04;
+             letter-spacing: -.026em; text-wrap: balance; font-weight: 400; margin: 0;
+             font-optical-sizing: auto }
+  .hero .dek { font-size: clamp(1.15rem, 2vw, 1.5rem); line-height: 1.45; font-weight: 300;
+               color: #5E594F; margin: 1.05rem 0 0; max-width: 34rem }
+  .hero .m { display: block; margin-bottom: 1.5rem }
+  .banner { display: flex; flex-wrap: wrap; gap: 1.7rem; margin-top: 2.6rem;
+            padding-top: 1.1rem; border-top: 1px solid var(--hair) }
+  .banner span { font-family: "IBM Plex Mono", Menlo, monospace; font-size: .68rem;
+                 text-transform: uppercase; letter-spacing: .085em; font-weight: 500;
+                 color: var(--quiet) }
+  .banner b { color: var(--ink); font-weight: 500 }
+
+  .open { margin-top: 6.5rem; padding-top: 2.4rem; border-top: 2px solid var(--ink) }
+  .sect-first { margin-top: 4.2rem }
+  .onum { font-family: "IBM Plex Mono", Menlo, monospace; font-weight: 500;
+          font-size: clamp(3.4rem, 9vw, 5.6rem); line-height: .82; color: #C6BDAD;
+          letter-spacing: -.03em; margin-bottom: .5rem }
+  .open .m { display: block; margin-bottom: .55rem }
+  h2 { font-size: 2.15rem; font-weight: 400; line-height: 1.1; margin: 0;
+       letter-spacing: -.016em }
+  .thesis { font-size: 1.3rem; line-height: 1.45; color: #5E594F; font-weight: 300;
+            margin: .7rem 0 0; max-width: 33rem }
+
+  figure { margin: 2.6rem 0 0 }
+  canvas { display: block; width: 100% }
+  .said { font-size: 1.09rem; line-height: 1.52; color: #5E594F; margin: 1.1rem 0 0 }
+  .finding { border-left: 2px solid var(--ink); padding: .1rem 0 .1rem 1.35rem;
+             margin: 2.4rem 0 0 }
+  .finding > .m { display: block; margin-bottom: .5rem; color: var(--ink) }
+  .finding p { font-size: 1.18rem; line-height: 1.5; margin: 0; color: var(--ink) }
+  .endrule { max-width: 40rem; margin: 3.4rem auto 0; padding: 0 1.5rem }
+  .endrule div { height: 1px; background: var(--hair) }
+
+  /* the verdict strip: the single most important thing on the page */
+  .verdict { display: flex; align-items: center; gap: .8rem; margin-top: 1.5rem;
+             padding: .85rem 1.1rem; border: 1px solid var(--hair);
+             background: #F1EDE5; transition: background .18s ease, border-color .18s ease }
+  .verdict.bad { background: #F7E6E1; border-color: #E2B4A8 }
+  .verdict b { font-family: "IBM Plex Mono", Menlo, monospace; font-size: .72rem;
+               text-transform: uppercase; letter-spacing: .085em; font-weight: 500;
+               color: var(--calm) }
+  .verdict.bad b { color: var(--warn) }
+  .verdict span { font-size: 1.02rem; color: #5E594F }
+
+  .rig { display: grid; grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+         gap: 1.4rem 2.3rem; margin-top: 2rem }
+  .ctl .lab { display: flex; justify-content: space-between; align-items: baseline;
+              margin-bottom: .8rem }
+  .ctl .lab b, .ctl .lab i {
+    font-family: "IBM Plex Mono", Menlo, monospace; font-style: normal;
+    font-weight: 500; font-size: .69rem; letter-spacing: .085em }
+  .ctl .lab b { text-transform: uppercase; color: var(--quiet) }
+  .ctl .lab i { font-size: .8rem; color: var(--ink) }
+  .sl { position: relative; height: 32px; cursor: pointer; touch-action: none }
+  .sl .trk, .sl .fil { position: absolute; left: 0; top: 14px; height: 4px; border-radius: 2px }
+  .sl .trk { right: 0; opacity: .2 }
+  .sl .knb { position: absolute; top: 0; width: 32px; height: 32px; margin-left: -16px;
+             border-radius: 16px; cursor: grab }
+  .sl:active .knb { cursor: grabbing }
+  .sl:focus-visible { outline: none }
+  .sl:focus-visible .knb { box-shadow: 0 0 0 3px var(--paper), 0 0 0 5px currentColor }
+
+  .bar { display: flex; align-items: baseline; justify-content: space-between;
+         margin: 2.2rem 0 0; border-top: 1px solid var(--hair); padding-top: .7rem }
+  button.m { background: none; border: 0; padding: 0; cursor: pointer }
+  button.m:hover { color: var(--ink) }
+
+  .scroll { overflow-x: auto; margin-top: 1.6rem; -webkit-overflow-scrolling: touch }
+  table { width: 100%; min-width: 30rem; border-collapse: collapse; font-size: 1rem }
+  th { font-family: "IBM Plex Mono", Menlo, monospace; text-transform: uppercase;
+       letter-spacing: .085em; font-size: .64rem; font-weight: 500; color: var(--quiet);
+       text-align: right; padding: 0 .7rem .55rem 0; border-bottom: 1px solid var(--hair) }
+  th:first-child, td:first-child { text-align: left }
+  td { padding: .6rem .7rem; border-bottom: 1px solid var(--hair); text-align: right;
+       font-family: "IBM Plex Mono", Menlo, monospace; font-size: .84rem }
+
+  nav { position: fixed; top: 2rem; right: 1.6rem; z-index: 5; text-align: right }
+  nav a { display: block; border: 0; margin-bottom: .42rem; color: var(--quiet);
+          font-family: "IBM Plex Mono", Menlo, monospace; font-size: .62rem;
+          text-transform: uppercase; letter-spacing: .085em; font-weight: 500;
+          transition: color .15s ease }
+  nav a:hover, nav a.here { color: var(--ink) }
+  nav a i { font-style: normal; opacity: .45; margin-right: .45em }
+  @media (max-width: 1180px) { nav { display: none } }
+
+  #prog { position: fixed; top: 0; left: 0; height: 2px; width: 0;
+          background: var(--ink); opacity: .5; z-index: 9 }
+
+  footer { margin: 4.5rem auto 7rem; padding-top: 1.4rem; border-top: 1px solid var(--hair);
+           font-size: 1rem; line-height: 1.55; color: #6E695E }
+
+  @media (max-width: 640px) {
+    .hero { padding-top: 3rem } .hero h1 { font-size: 2.1rem }
+    p { font-size: 1.1rem } h2 { font-size: 1.7rem } .thesis { font-size: 1.12rem }
+  }
+</style>
+</head>
+<body>
+
+<div id="prog"></div>
+
+<nav aria-label="Contents">
+  <a href="#surface"><i>00</i>Surface</a>
+  <a href="#break"><i>01</i>Break it</a>
+  <a href="#fit"><i>02</i>Calibrate</a>
+  <a href="#sabr"><i>03</i>SABR</a>
+</nav>
+
+<header class="text hero">
+  <span class="m">An interactive visualisation &nbsp;::&nbsp; three experiments</span>
+  <h1>vol-surface: a volatility smile you can break</h1>
+  <p class="dek">A smile is a claim about where a stock can end up. Push it far enough and the
+    claim becomes incoherent: negative probability, and a portfolio that pays you to own it.
+    Every number here is computed in this tab by the calibration code itself.</p>
+  <div class="banner">
+    <span><b>00</b> &nbsp;The surface</span>
+    <span><b>01</b> &nbsp;Break it</span>
+    <span><b>02</b> &nbsp;Calibrate</span>
+    <span><b>03</b> &nbsp;SABR</span>
+  </div>
+</header>
+
+<div class="text open sect-first" id="surface">
+  <div class="onum">00</div>
+  <span class="m">The surface &middot; fitted from quotes</span>
+  <h2>Five expiries, one surface</h2>
+  <p class="thesis">Twenty-one strikes at each of five expiries, quoted with noise, fitted
+    slice by slice and then asked for a vol nobody quoted.</p>
+  <p>Implied volatility over log-moneyness and time. Each row is one expiry, colour is the
+    vol the fitted surface returns there, and the marked rows are the five that were actually
+    quoted. Everything between them is interpolation: the surface is a continuous object, and
+    the point of fitting one is to be able to ask it about strikes and dates the market never
+    printed.</p>
+</div>
+
+<div class="wide">
+  <figure><canvas id="surf"></canvas></figure>
+  <div class="bar">
+    <span class="m" id="surfNote">waiting</span>
+    <span class="m" id="surfState"></span>
+  </div>
+</div>
+<div class="text"><p class="said" id="sSurf"></p></div>
+<div class="endrule"><div></div></div>
+
+<div class="text open" id="break">
+  <div class="onum">01</div>
+  <span class="m">Break it &middot; the arbitrage check</span>
+  <h2>Make the smile lie</h2>
+  <p class="thesis">Five numbers describe one slice. Two of them, pushed far enough, produce a
+    smile that no arbitrage-free market could quote.</p>
+  <p>Below are the same slice three ways. The <strong>smile</strong> is what a desk publishes.
+    <strong>g(k)</strong> is the Gatheral and Jacquier condition, which is negative exactly
+    where the slice is inadmissible. The <strong>density</strong> is what the quote implies
+    about where the stock lands, and it is the one that makes the problem obvious: a
+    probability cannot be less than zero.</p>
+  <p>Raise <span class="n">b</span> and drop <span class="n">sigma</span> and watch all three
+    react together:</p>
+</div>
+
+<div class="wide">
+  <figure><canvas id="slice"></canvas></figure>
+
+  <div class="verdict" id="verdict">
+    <b id="vTag">checking</b><span id="vMsg"></span>
+  </div>
+
+  <div class="rig">
+    <div class="ctl">
+      <div class="lab"><b>a &nbsp;level</b><i id="vA">0.021</i></div>
+      <div class="sl" id="slA" tabindex="0" role="slider" aria-label="SVI a, vertical level"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>b &nbsp;wing slope</b><i id="vB">0.075</i></div>
+      <div class="sl" id="slB" tabindex="0" role="slider" aria-label="SVI b, wing slope"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>rho &nbsp;skew</b><i id="vR">-0.60</i></div>
+      <div class="sl" id="slR" tabindex="0" role="slider" aria-label="SVI rho, skew"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>m &nbsp;shift</b><i id="vM">0.00</i></div>
+      <div class="sl" id="slM" tabindex="0" role="slider" aria-label="SVI m, horizontal shift"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>sigma &nbsp;curvature</b><i id="vS">0.200</i></div>
+      <div class="sl" id="slS" tabindex="0" role="slider" aria-label="SVI sigma, curvature"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>&nbsp;</b><i>&nbsp;</i></div>
+      <button class="m" id="reset" style="padding:.34rem .62rem;border:1px solid var(--hair);border-radius:3px">&#8635; back to the fitted slice</button>
+    </div>
+  </div>
+</div>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment one</span>
+  <p id="sBreak"></p></div></div>
+<div class="endrule"><div></div></div>
+
+<div class="text open" id="fit">
+  <div class="onum">02</div>
+  <span class="m">Calibrate &middot; noisy quotes</span>
+  <h2>Fitting marks that are not clean</h2>
+  <p class="thesis">Real quotes are not a curve. They are a curve plus whatever the market was
+    doing when you took the snapshot.</p>
+  <p>Every quote below is perturbed by up to a quarter of a vol point before the fitter sees
+    it, which is roughly what a screen looks like. The fit has to find the smile through that
+    noise, and then pass both no-arbitrage checks anyway. Drag the noise up and watch the
+    residuals grow:</p>
+</div>
+
+<div class="wide">
+  <figure><canvas id="resid"></canvas></figure>
+  <div class="rig" style="grid-template-columns:minmax(14rem,22rem)">
+    <div class="ctl">
+      <div class="lab"><b>Quote noise</b><i id="vN">25 bp</i></div>
+      <div class="sl" id="slN" tabindex="0" role="slider" aria-label="Quote noise in basis points"></div>
+    </div>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>Expiry</th><th>a</th><th>b</th><th>rho</th><th>m</th><th>sigma</th>
+      <th>ATM vol</th><th>RMS err</th></tr></thead>
+    <tbody id="fitBody"></tbody>
+  </table></div>
+  <div class="bar">
+    <span class="m" id="fitNote">waiting</span>
+    <span class="m" id="fitState"></span>
+  </div>
+</div>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment two</span>
+  <p id="sFit"></p></div></div>
+<div class="endrule"><div></div></div>
+
+<div class="text open" id="sabr">
+  <div class="onum">03</div>
+  <span class="m">SABR &middot; the other model</span>
+  <h2>A second opinion on the same quotes</h2>
+  <p class="thesis">SVI is a shape fitted to a slice. SABR is a stochastic-volatility model
+    whose smile comes out of an expansion. Both get pointed at the same marks here.</p>
+  <p>Hagan's formula is an asymptotic expansion, so it is at its best when the vol of vol
+    times the maturity is small and it drifts when that product grows. That is a known
+    limitation rather than a bug, and
+    <a href="https://github.com/superkush06/vol-surface/blob/main/docs/validation.md">validation.md</a>
+    measures it against a Monte Carlo of the SABR SDE rather than taking the formula's word
+    for it. Here both models fit the one-year slice:</p>
+</div>
+
+<div class="wide">
+  <figure><canvas id="sabrfig"></canvas></figure>
+  <div class="bar">
+    <span class="m" id="sabrNote">waiting</span>
+    <span class="m" id="sabrState"></span>
+  </div>
+</div>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment three</span>
+  <p id="sSabr"></p></div></div>
+<div class="endrule"><div></div></div>
+
+<div class="text">
+  <p id="close">Three experiments, one library, and every number above computed while you
+    read. The same code is scored against Hagan, Gatheral and a Monte Carlo of the SABR SDE
+    in <a href="https://github.com/superkush06/vol-surface/blob/main/docs/validation.md">validation.md</a>,
+    including the place where it disagrees with the reference by 393 basis points and says
+    so.</p>
+
+  <footer>
+    <span id="runCount">0</span> calibrations ran in this tab while you read this, on
+    <a href="https://github.com/superkush06/vol-surface">vol-surface</a> compiled to
+    WebAssembly. Nothing here is precomputed. The driver the page calls into is
+    <a href="https://github.com/superkush06/vol-surface/blob/main/docs/demo/vs.py">vs.py</a>.
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"
+        integrity="sha384-i3R37b3tF+HWudsUf1VSEOY2YxwSNMqY8DQa9Z0O3xh+NkJ9o+yjcGyIi5huj+nB"
+        crossorigin="anonymous"></script>
+<script src="demo.js"></script>
+</body>
+</html>
