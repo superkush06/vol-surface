@@ -34,7 +34,7 @@ library reports that number and lets you decide.
 git clone https://github.com/superkush06/vol-surface.git
 cd vol-surface
 pip install -e ".[dev]"
-pytest          # 82 tests
+pytest          # 94 tests
 ```
 
 The `dev` extra pulls in pytest, ruff, and numpy. numpy is not used by
@@ -252,8 +252,11 @@ in [`docs/theory.md`](docs/theory.md).
   ordering is checked afterwards. Enforcing it during calibration means a fit
   coupled across expiries — SSVI is the usual route, and it is not here.
 - **Guarantee an arbitrage-free fit.** `butterfly_penalty` is a soft penalty,
-  not a projection. It gets `min g(k)` to `+6.6e-06` on the Vogt slice, which
-  is non-negative but not by construction.
+  not a projection. On the Vogt slice it lands `min g(k)` above zero but
+  below `1e-05`, which is non-negative without being non-negative by
+  construction. The exact residual is a soft-penalty artefact and moves in the
+  last digits between platforms, so the bound is what is claimed here rather
+  than a pinned value.
 - **Vectorise.** Everything is scalar Python. Calibration is comfortable; a
   Monte Carlo inner loop would not be.
 - **Local volatility.** Dupire from `w(k, T)` is the natural next thing and

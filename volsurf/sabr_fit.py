@@ -71,7 +71,7 @@ def _nelder_mead(p0: SABRParams, beta: float, F: float, T: float,
         v[i] = v[i] * 1.05 + 0.05
         simplex.append(v)
 
-    def loss(v):
+    def loss(v: list[float]) -> float:
         try:
             return _objective(_x_to_params(v, beta), F, T, K, IV, W)
         except (ValueError, ZeroDivisionError):

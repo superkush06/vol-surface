@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import math
 import warnings
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from .svi import (
     ButterflyArbitrageWarning,
@@ -30,7 +32,9 @@ from .svi import (
 
 
 # --- small self-contained Nelder-Mead (unconstrained) -----------------------
-def _nelder_mead(f, x0, *, max_iter: int = 800, tol: float = 1e-12):
+def _nelder_mead(f: Callable[[list[float]], float], x0: Sequence[float], *,
+                 max_iter: int = 800,
+                 tol: float = 1e-12) -> tuple[list[float], float]:
     n = len(x0)
     simplex = [list(x0)]
     for i in range(n):
@@ -68,20 +72,21 @@ def _nelder_mead(f, x0, *, max_iter: int = 800, tol: float = 1e-12):
     return simplex[0], fs[0]
 
 
-def _x_to_params(x) -> SVIRawParams:
+def _x_to_params(x: Sequence[float]) -> SVIRawParams:
     a, log_b, atanh_rho, m, log_sigma = x
     return SVIRawParams(a=a, b=math.exp(log_b), rho=math.tanh(atanh_rho),
                         m=m, sigma=math.exp(log_sigma))
 
 
-def _params_to_x(p: SVIRawParams):
+def _params_to_x(p: SVIRawParams) -> list[float]:
     rho = max(-0.999, min(0.999, p.rho))
     return [p.a, math.log(max(p.b, 1e-8)), math.atanh(rho), p.m,
             math.log(max(p.sigma, 1e-8))]
 
 
 # --- quasi-explicit (De Marco / Zeliade 2009) inner problem ------------------
-def _solve3(A, rhs):
+def _solve3(A: Sequence[Sequence[float]],
+            rhs: Sequence[float]) -> list[float] | None:
     """3x3 linear solve, Gaussian elimination with partial pivoting."""
     M = [list(row) + [r] for row, r in zip(A, rhs, strict=True)]
     for col in range(3):
@@ -100,7 +105,8 @@ def _solve3(A, rhs):
     return x
 
 
-def _inner_fit(ks, ws, m: float, sigma: float):
+def _inner_fit(ks: Sequence[float], ws: Sequence[float], m: float,
+               sigma: float) -> tuple[float, float, float, float]:
     """For fixed (m, sigma) the SVI objective is linear least squares.
 
     With y = (k - m)/sigma,  w = a + d*y + c*sqrt(y^2 + 1)  where
@@ -166,7 +172,7 @@ def fit_svi_slice(ks: list[float], total_vars: list[float], *,
     k_lo, k_hi = min(ks), max(ks)
     span = max(k_hi - k_lo, 1e-3)
 
-    def outer(x):
+    def outer(x: list[float]) -> float:
         m, log_sigma = x
         sigma = math.exp(max(-12.0, min(3.0, log_sigma)))
         return _inner_fit(ks, ws, m, sigma)[0]
@@ -179,7 +185,7 @@ def fit_svi_slice(ks: list[float], total_vars: list[float], *,
             grid.append((outer(x), x))
     grid.sort(key=lambda t: t[0])
 
-    best_x, best_loss = None, math.inf
+    best_x, best_loss = grid[0][1], math.inf
     for _, x0 in grid[:3]:
         x, loss = _nelder_mead(outer, x0, max_iter=max_iter, tol=1e-16)
         if loss < best_loss:
@@ -193,7 +199,7 @@ def fit_svi_slice(ks: list[float], total_vars: list[float], *,
     # full 5-D polish from the quasi-explicit solution
     g_grid = [k_lo + (k_hi - k_lo) * i / 100.0 for i in range(101)]
 
-    def polish_obj(x):
+    def polish_obj(x: list[float]) -> float:
         p = _x_to_params(x)
         sse = sum((svi_w(k, p) - w) ** 2 for k, w in zip(ks, ws, strict=True))
         if butterfly_penalty > 0.0:
@@ -293,7 +299,7 @@ class SVISurface:
 
 
 def fit_svi_surface(slices: list[tuple[float, list[float], list[float]]],
-                    **fit_kwargs) -> SVISurface:
+                    **fit_kwargs: Any) -> SVISurface:
     """Fit a surface from `(T, ks, total_vars)` slices, one per expiry.
 
     Keyword arguments are forwarded to `fit_svi_slice`.

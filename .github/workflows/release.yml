@@ -1,0 +1,56 @@
+name: release
+
+# A tag is the only thing anyone can pin to. This builds the sdist and wheel
+# for the tag, refuses to continue unless the tag matches the packaged version,
+# proves the wheel installs and computes on a machine that has never seen the
+# source tree, and attaches both artifacts to a GitHub Release.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install build twine
+
+      - name: the tag must be the packaged version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION=$(python -c "import tomllib, pathlib; print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          test "v$VERSION" = "$TAG" || { echo "tag $TAG != version v$VERSION"; exit 1; }
+
+      - run: python -m build
+      - run: twine check dist/*
+
+      - name: the wheel works with no source tree in sight
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install dist/*.whl
+          cd /tmp
+          /tmp/smoke/bin/python -c "
+          import pathlib, volsurf
+          from volsurf import BlackScholes, SVIRawParams, implied_vol, svi_min_g
+          assert (pathlib.Path(volsurf.__file__).parent / 'py.typed').exists(), 'py.typed missing from the wheel'
+          bs = BlackScholes(S=100, K=105, T=0.5, r=0.02)
+          assert abs(implied_vol(bs.price(0.21), bs) - 0.21) < 1e-8
+          vogt = SVIRawParams(a=-0.0410, b=0.1331, rho=0.3060, m=0.3586, sigma=0.4153)
+          assert svi_min_g(vogt, -1.5, 1.5)[0] < 0.0
+          print('volsurf', volsurf.__version__, 'ok')
+          "
+
+      - name: publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" dist/* --title "$TAG" --generate-notes

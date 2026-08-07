@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vol-surface"
-version = "0.5.0"
+version = "0.6.0"
 description = "SABR and SVI implied-volatility calibration with Gatheral-Jacquier arbitrage checks."
 authors = [{name = "superkush06"}]
 readme = "README.md"
@@ -12,11 +12,16 @@ requires-python = ">=3.11"
 license = {text = "MIT"}
 
 [project.optional-dependencies]
-dev = ["pytest>=7", "ruff>=0.5", "numpy>=1.24"]
-plot = ["matplotlib>=3.7", "numpy>=1.24"]
+dev = ["pytest>=7", "ruff>=0.5", "mypy>=1.8", "numpy>=1.24,<3"]
+plot = ["matplotlib>=3.7", "numpy>=1.24,<3"]
 
 [tool.setuptools.packages.find]
 include = ["volsurf*"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["volsurf"]
+strict = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -17,7 +17,7 @@ from .svi import (
     svi_w,
 )
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 __all__ = [
     "BlackScholes", "implied_vol", "IVSolverError",
     "SABRParams", "sabr_iv", "fit_sabr",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 
 from .black_scholes import BlackScholes
 
@@ -33,7 +34,7 @@ def implied_vol(market_price: float, bs: BlackScholes, *,
             f"[{intrinsic}, {upper_arb}]"
         )
 
-    def f(s):
+    def f(s: float) -> float:
         return bs.price(s, call=call) - market_price
     a, b = lo, hi
     fa, fb = f(a), f(b)
@@ -59,7 +60,7 @@ def implied_vol(market_price: float, bs: BlackScholes, *,
     return _brentq(f, a, b, fa=fa, fb=fb, tol=tol, max_iter=max_iter)
 
 
-def _brentq(f, a: float, b: float, *, fa: float | None = None,
+def _brentq(f: Callable[[float], float], a: float, b: float, *, fa: float | None = None,
             fb: float | None = None, tol: float = 1e-8,
             max_iter: int = 100) -> float:
     """Brent's method root finder (1973). Assumes f(a)*f(b) < 0.

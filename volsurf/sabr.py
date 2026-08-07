@@ -50,7 +50,7 @@ def sabr_iv(F: float, K: float, T: float, params: SABRParams) -> float:
     if F <= 0 or K <= 0:
         raise ValueError("F and K must be positive")
     log_fk = math.log(F / K)
-    fk_beta = (F * K) ** ((1.0 - beta) / 2.0)
+    fk_beta = math.pow(F * K, (1.0 - beta) / 2.0)
     one_minus_beta = 1.0 - beta
 
     A = alpha / (fk_beta * (1.0 + (one_minus_beta ** 2) * (log_fk ** 2) / 24.0

@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.6.0] - 2026-08-07
+
+### Added
+- `mypy --strict` over `volsurf`, wired into CI. The annotations it needed
+  were mostly on inner closures (`implied_vol`'s objective, `_brentq`'s
+  callable parameter) rather than on the public surface, which was already
+  typed.
+- A browser demo under `docs/demo`, published at
+  https://superkush06.github.io/vol-surface/demo/. It runs this package under
+  Pyodide: a rotatable fitted surface, a slice whose five SVI parameters you
+  can push until the implied density goes negative, calibration against noisy
+  quotes, and SABR scored on the same marks. `docs/demo/vs.py` imports the
+  truth surface and the noise from `examples/fit_surface.py`, so the residuals
+  the page reports cannot drift from the ones the README quotes.
+
+### Changed
+- CI runs on macOS as well as Linux. `volsurf` pins printed digits in its
+  README, and glibc and Apple libm are not required to agree to the last ulp
+  on `erf`/`exp`/`log`, so a single-platform matrix was checking that the
+  numbers were reproducible rather than that they were right.
+- `sabr_iv` computes `(F*K)**((1-beta)/2)` through `math.pow`, which is the
+  same value with a defined type for a strict checker.
+- numpy is pinned below 3 in the `dev` and `plot` extras.
+
+### Fixed
+- The soft-penalty caveat in the README pinned `min g(k)` to two significant
+  figures of a residual near `7e-06`. That is the leftover of a penalty term,
+  and its leading digits move between platforms, so the same commit that added
+  a macOS CI leg would have failed on it. The claim is now the bound the
+  argument actually needs, `above zero and below 1e-05`, and the test asserts
+  that instead of an equality.
+- `test_the_readme_states_the_real_test_count` cleared the repository's own
+  `-ra -q` addopts before collecting. Passing `-q` on top of it made pytest
+  doubly quiet and dropped the "N tests collected" line the test parses.
+
 ## [0.5.0] - 2026-07-27
 
 ### Added

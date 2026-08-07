@@ -1,0 +1,104 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software in work you publish, please cite it, and cite the
+  papers whose algorithms it implements — they are listed under `references`.
+title: "vol-surface: SABR and SVI implied-volatility calibration with Gatheral-Jacquier arbitrage checks"
+abstract: >-
+  A pure-Python library for fitting implied-volatility smiles and surfaces.
+  It provides Black-Scholes pricing and Greeks, a bracketed Brent implied-vol
+  solver, Hagan's SABR expansion, raw SVI calibrated by the De Marco/Martini
+  quasi-explicit reduction, and multi-expiry surfaces stitched in total
+  variance. Every fitted slice is checked against the Gatheral-Jacquier
+  butterfly condition and every surface against calendar monotonicity, and
+  discrete model-free screens are provided for raw quotes. The package imports
+  only the Python standard library; its results are validated against external
+  references in docs/validation.md.
+type: software
+authors:
+  - name: "superkush06"
+repository-code: "https://github.com/superkush06/vol-surface"
+url: "https://github.com/superkush06/vol-surface"
+license: MIT
+version: 0.6.0
+date-released: "2026-08-05"
+keywords:
+  - implied volatility
+  - volatility surface
+  - SABR
+  - SVI
+  - no-arbitrage
+  - option pricing
+  - quantitative finance
+references:
+  - type: article
+    title: "Managing Smile Risk"
+    authors:
+      - family-names: Hagan
+        given-names: Patrick S.
+      - family-names: Kumar
+        given-names: Deep
+      - family-names: Lesniewski
+        given-names: Andrew S.
+      - family-names: Woodward
+        given-names: Diana E.
+    journal: "Wilmott Magazine"
+    start: 84
+    end: 108
+    year: 2002
+  - type: article
+    title: "Arbitrage-Free SVI Volatility Surfaces"
+    authors:
+      - family-names: Gatheral
+        given-names: Jim
+      - family-names: Jacquier
+        given-names: Antoine
+    journal: "Quantitative Finance"
+    volume: 14
+    issue: 1
+    start: 59
+    end: 71
+    year: 2014
+    doi: 10.1080/14697688.2013.819986
+  - type: report
+    title: "Quasi-Explicit Calibration of Gatheral's SVI Model"
+    authors:
+      - family-names: De Marco
+        given-names: Stefano
+      - family-names: Martini
+        given-names: Claude
+    institution:
+      name: "Zeliade Systems"
+    number: "ZWP-0005"
+    year: 2009
+  - type: article
+    title: "The Moment Formula for Implied Volatility at Extreme Strikes"
+    authors:
+      - family-names: Lee
+        given-names: Roger W.
+    journal: "Mathematical Finance"
+    volume: 14
+    issue: 3
+    start: 469
+    end: 480
+    year: 2004
+  - type: article
+    title: "Prices of State-Contingent Claims Implicit in Option Prices"
+    authors:
+      - family-names: Breeden
+        given-names: Douglas T.
+      - family-names: Litzenberger
+        given-names: Robert H.
+    journal: "Journal of Business"
+    volume: 51
+    issue: 4
+    start: 621
+    end: 651
+    year: 1978
+  - type: book
+    title: "Algorithms for Minimization without Derivatives"
+    authors:
+      - family-names: Brent
+        given-names: Richard P.
+    publisher:
+      name: "Prentice-Hall"
+    year: 1973

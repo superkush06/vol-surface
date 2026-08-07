@@ -8,9 +8,15 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Two operating systems on purpose. `volsurf` is a numerical library whose
+    # README pins printed digits, and glibc and Apple libm do not have to agree
+    # to the last ulp on erf/exp/log — running both is what keeps the pinned
+    # numbers honest rather than merely reproducible on one machine.
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest]
         python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
@@ -19,5 +25,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e ".[dev]"
       - run: ruff check .
+      - run: mypy
       - run: pytest
       - run: PYTHONPATH=. python examples/validate.py
