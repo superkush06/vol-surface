@@ -2,7 +2,7 @@
 
 A library that only tests itself against itself tells you it is
 self-consistent. This page is the other kind of evidence: every row below
-compares `volsurf` to something it does not control — a closed form written
+compares `volsurf` to something it does not control: a closed form written
 out in the source paper, a limit the model has to collapse to, a Monte-Carlo
 simulation of the SDE the formula is only an approximation *of*, or a second
 screen built on a different principle.
@@ -25,7 +25,7 @@ rather than a footnote.
 
 | Claim | Our value | Reference value | Source of the reference |
 | --- | --- | --- | --- |
-| `price(call) - price(put)` is the forward | max discrepancy `1.067e-15 · S` over 5,000 random `(S, K, T, r, q, σ)` | exactly `S e^{-qT} - K e^{-rT}` | put-call parity — static replication, no model |
+| `price(call) - price(put)` is the forward | max discrepancy `1.067e-15 · S` over 5,000 random `(S, K, T, r, q, σ)` | exactly `S e^{-qT} - K e^{-rT}` | put-call parity, static replication, no model |
 | Call price sits inside the static bounds | max violation `1.333e-16 · S` | `max(F-K,0) ≤ C ≤ S e^{-qT}` | no-arbitrage bounds |
 | `implied_vol(price(σ)) = σ` | max error `1.845e-10` | the σ it was given | round trip |
 | `σ → 0` call value | `11.664885355551064` | `11.664885355551064` | discounted intrinsic `max(F-K,0)e^{-rT}` |
@@ -35,7 +35,7 @@ rather than a footnote.
 | SABR at the money | max rel err `2.557e-15` over 2,000 random parameter sets | `σ_B(f,f)` transcribed from the paper | Hagan et al. (2002), the at-the-money case of their implied-vol expansion |
 | SABR at `β=0, ν→0` | `0.022314355140` at K=80 | `0.022314355131` (rel `3.8e-10`) | `α log(F/K)/(F-K)`; the O(log⁶) residual is the paper's own truncation |
 | SABR vs the SDE, `ν²T = 0.16` | Hagan − MC = `+1.5 bp` ATM, `+11.9 bp` at K=70 | Monte-Carlo of the SABR SDE, s.e. `1.0 bp` / `11.6 bp` | conditional Monte Carlo, see below |
-| SABR vs the SDE, `ν²T = 3.2` | Hagan − MC = `+393 bp` ATM, `+1121 bp` at K=50 | same simulation, s.e. `2.2 bp` / `4.8 bp` | **disagrees — see "Where we differ"** |
+| SABR vs the SDE, `ν²T = 3.2` | Hagan − MC = `+393 bp` ATM, `+1121 bp` at K=50 | same simulation, s.e. `2.2 bp` / `4.8 bp` | **disagrees, see "Where we differ"** |
 | SVI with `b = 0` is Black-Scholes | max abs err `2.220e-16` | `φ(d_-)/√w`, the lognormal density in log-moneyness | Black-Scholes closed form |
 | The implied density is a unit mass | `∫p dk - 1 = 0.0`, `∫e^k p dk - 1 ≤ 1.1e-16` | `1` and `1` | normalisation and `E[S_T] = F` |
 | `g(k)` far in the wing | max err `3.0e-08` over 500 draws | `1/4 - b²(1+ρ)²/16` | derived below; non-negative iff the wing slope `b(1+ρ) ≤ 2`, which is Lee (2004)'s moment-formula bound |
@@ -70,7 +70,7 @@ with `V = ∫₀ᵀ α_t² dt` and `∫ α dW₂ = (α_T - α₀)/ν`, the latte
 driftless geometric Brownian motion. Conditioning on the volatility path this
 way is the Romano & Touzi (1997) mixing argument. It removes all the variance
 contributed by `W⊥`, which is why 200,000 antithetic paths price the wings to
-under a basis point of vol. The `α` path is exact — lognormal increments — so
+under a basis point of vol. The `α` path is exact (lognormal increments), so
 the only discretisation is the trapezoid rule for `V`, and refining it does
 nothing:
 
@@ -126,7 +126,7 @@ The first bracket tends to `1 - 1/2 = 1/2`, so its square tends to `1/4`. The
 g(+∞) = 1/4 - b²(1+ρ)²/16,     g(-∞) = 1/4 - b²(1-ρ)²/16
 ```
 
-which is non-negative exactly when the wing slope is at most 2 — the bound
+which is non-negative exactly when the wing slope is at most 2, the bound
 Lee's (2004) moment formula puts on the asymptotic slope of total variance.
 The library's `svi_min_g` is a local grid scan, and it is reassuring that it
 agrees with the global asymptotic statement instead of contradicting it: 300
@@ -136,7 +136,7 @@ A raw-SVI slice is an SSVI slice exactly when `a = b σ √(1-ρ²)`, with
 `θ = 2bσ/√(1-ρ²)` and `φ = √(1-ρ²)/σ`. Mapping Gatheral and Jacquier's
 sufficient conditions through that substitution and drawing 500 slices at
 90–99.9% of the first bound gives a minimum `g` of `+0.003137` and no
-violations — tight enough that the check is doing work, and on the right side
+violations, tight enough that the check is doing work and on the right side
 of zero every time.
 
 ---
@@ -146,7 +146,7 @@ of zero every time.
 **Hagan's formula is not the SABR model, and at large `ν²T` the difference is
 enormous.** The third block above is the honest picture: at `ν²T = 3.2` the
 expansion overstates the 50-strike vol by eleven vol points. Nothing is wrong
-with the transcription — the same code is exact to `2.6e-15` against the
+with the transcription. The same code is exact to `2.6e-15` against the
 paper's own at-the-money formula. It is the expansion that has left its
 regime, and `sabr_iv` reproduces the expansion, faithfully, including where
 the expansion is wrong. If you are calibrating five-year options with a
@@ -179,7 +179,7 @@ implements the original. What that costs, at `β = 0.5`:
 
 Four basis points of vol in the far wing at a two-to-one strike ratio, and
 zero at the money. That is small next to the expansion error above, which is
-why the original is still what ships — but it is a real, documented
+why the original is still what ships. It is a real, documented
 difference from a reference, and it belongs here rather than in a changelog
 nobody reads.
 
@@ -191,7 +191,7 @@ formula is right, not evidence that the slice is admissible; only `g(k) ≥ 0`
 is that.
 
 **What is not validated here.** The SVI fitter's behaviour on *noisy* data is
-checked only for self-consistency — there is no external benchmark for "the
+checked only for self-consistency, because there is no external benchmark for "the
 right SVI parameters given noisy quotes", because there is no right answer.
 The comparison against the SDE is done at `β = 1`, where the conditional law
 of `F_T` is exactly lognormal; for `β ≠ 1` the conditional law is CEV and
@@ -208,7 +208,7 @@ against a commercial pricer, because I do not have one to compare against.
 2. P. Hagan, D. Kumar, A. Lesniewski, D. Woodward (2002). *Managing Smile
    Risk.* Wilmott Magazine, September, 84–108.
 3. M. Romano, N. Touzi (1997). *Contingent Claims and Market Completeness in a
-   Stochastic Volatility Model.* Mathematical Finance 7(4) — the source of the
+   Stochastic Volatility Model.* Mathematical Finance 7(4), the source of the
    conditioning argument used for the Monte-Carlo reference.
 4. R. Lee (2004). *The Moment Formula for Implied Volatility at Extreme
    Strikes.* Mathematical Finance 14(3), 469–480.

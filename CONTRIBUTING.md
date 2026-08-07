@@ -25,7 +25,7 @@ hooks in front of every commit.
   which, and the document is what you fix.
 - **A CHANGELOG entry**, under a new heading if it is a release.
 - **Type annotations.** The package ships `py.typed`, and `mypy --strict`
-  passes over `volsurf/` — new code has to keep that true.
+  passes over `volsurf/`, and new code has to keep that true.
 
 ## Scope
 
@@ -37,7 +37,7 @@ Things that are unlikely to be merged, so you know before you write them:
 
 - **A scipy, pandas, or numpy dependency in `volsurf/`.** The package imports
   the standard library only. That is a constraint the code is designed around,
-  not an accident — `numpy` appears in the `dev` and `plot` extras because
+  not an accident. `numpy` appears in the `dev` and `plot` extras because
   `examples/validate.py` and `docs/figures.py` are scripts, not package code.
 - **Another parameterisation for its own sake.** SSVI, eSSVI, and local
   volatility are all reasonable; each one needs to arrive with the validation

@@ -119,15 +119,14 @@ def main() -> None:
     ax.text(64, 92, "A N   I N T E R A C T I V E   V I S U A L I S A T I O N",
             family=MONO, fontsize=12, color=QUIET, va="center")
     ax.text(62, 176, "vol-surface", family=SERIF, fontsize=62, color=INK, va="center")
-    ax.text(62, 240, "a volatility smile", family=SERIF, fontsize=40,
-            color=INK, va="center")
-    ax.text(62, 292, "you can break", family=SERIF, fontsize=40, color=INK, va="center")
-    ax.text(64, 360, "Drag the five SVI parameters until the smile", family=SERIF,
-            fontsize=19, color="#5E594F", va="center")
-    ax.text(64, 390, "implies negative probability, and watch the", family=SERIF,
-            fontsize=19, color="#5E594F", va="center")
-    ax.text(64, 420, "no-arbitrage check catch it.", family=SERIF, fontsize=19,
-            color="#5E594F", va="center")
+    # three short lines, so none of them reaches the surface's leading edge
+    for y, line in ((228, "an arbitrage-free"), (274, "volatility surface"),
+                    (320, "you can break")):
+        ax.text(62, y, line, family=SERIF, fontsize=38, color=INK, va="center")
+    for y, line in ((376, "Drag the five SVI parameters until the slice"),
+                    (404, "implies negative risk-neutral density, and"),
+                    (432, "watch the butterfly check catch it.")):
+        ax.text(64, y, line, family=SERIF, fontsize=19, color="#5E594F", va="center")
 
     fit = vs.fit_surface()
     ax.plot([64, 500], [468, 468], color=HAIR, lw=1)

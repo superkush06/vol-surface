@@ -45,7 +45,7 @@
 ## [0.5.0] - 2026-07-27
 
 ### Added
-- `docs/validation.md` — the library checked against things it does not
+- `docs/validation.md`: the library checked against things it does not
   control: Hagan's own at-the-money formula, the Black and normal limits, a
   conditional Monte-Carlo of the SABR SDE, Lee's wing-slope bound, the
   Gatheral-Jacquier sufficient conditions on SSVI, and the discrete price
@@ -55,14 +55,14 @@
 - `tests/test_validation.py` asserts the same comparisons at smaller sample
   sizes, importing the reference implementations from `examples/validate.py`
   so the doc and the suite cannot drift apart.
-- `tests/test_properties.py` — seeded randomised invariant tests: put-call
+- `tests/test_properties.py`: seeded randomised invariant tests: put-call
   parity, static bounds, Greeks against differences of the price,
   Breeden-Litzenberger against the lognormal density, SABR's scale invariance
   and beta=0 reflection symmetry, continuity through the money, the SVI
   density's unit mass and martingale condition, the g/density sign agreement,
   the wing limit of g, calibration recovery on random draws, and both
   discrete screens.
-- `examples/greeks_handoff.py` — a quote screen through calibration and the
+- `examples/greeks_handoff.py`: a quote screen through calibration and the
   arbitrage screens to a marked book, its Greeks, and a scenario P&L vector,
   which is the shape of the handoff to the pricing and risk libraries next to
   this one.
@@ -79,23 +79,23 @@
 
 ### Changed
 - README: the `svi_min_g` output and the `fit_surface.py` residual range now
-  match what a rerun prints, and there are two new sections — what has been
+  match what a rerun prints, and there are two new sections: what has been
   checked against what, and where this library sits next to the others.
 
 ## [0.4.0] - 2026-07-27
 
 ### Added
 - `svi_min_g(params, k_min, k_max)` returns the smallest g(k) **and where it
-  occurs** — knowing which strikes are implicated is the point of running the
+  occurs**. Knowing which strikes are implicated is the point of running the
   check, and a bare boolean throws that away.
 - `SVISurface.butterfly_arbitrage_free(k_min, k_max)`, the per-slice
   companion to `calendar_arbitrage_free`. A surface needs both.
 - `docs/figures.py` renders every figure in the README from live library
   output: the butterfly diagnosis and its repair, the calibration
   comparison, and the fitted surface with its calendar condition.
-- `examples/fit_surface.py` — five expiries, 21 strikes each, 25 bp of noise
+- `examples/fit_surface.py`: five expiries, 21 strikes each, 25 bp of noise
   on every quote, through to a vol at an expiry nobody quoted.
-- `examples/screen_for_arbitrage.py` — the three screens (analytic
+- `examples/screen_for_arbitrage.py`: the three screens (analytic
   butterfly, discrete butterfly, calendar) on data that trips each one.
 
 ### Changed
@@ -104,7 +104,7 @@
 - `docs/theory.md` expanded into a real derivation: Breeden-Litzenberger,
   the near-ATM series for z/x(z), where g(k) comes from, why the
   quasi-explicit reduction removes the local minimum, and full citations.
-  Formulas now use `$...$`, which GitHub renders — the old `\[...\]` did not.
+  Formulas now use `$...$`, which GitHub renders. The old `\[...\]` did not.
 - `examples/fit_sabr.py` also walks the strike towards the forward, showing
   the ATM value reached as a limit rather than a branch.
 - `examples/fit_svi.py`, `examples/svi_density.py` and
@@ -121,7 +121,7 @@
 - `fit_svi_slice` now checks its own output for butterfly arbitrage
   (warns when min g(k) < 0 on the fit range) and accepts an optional
   `butterfly_penalty` that pushes the fit toward arbitrage-free parameters.
-- `examples/svi_density.py` — renders the Vogt slice's g(k) and its
+- `examples/svi_density.py`: renders the Vogt slice's g(k) and its
   negative implied density (`docs/density.png`).
 
 ### Changed
@@ -164,7 +164,7 @@
 - Black-Scholes pricing + delta, gamma, vega.
 - Implied volatility solver using Brent's method (pure Python).
 - SABR Hagan-formula IV with parameter validation.
-- 3-parameter SABR slice calibration (alpha, rho, nu) at fixed beta —
+- 3-parameter SABR slice calibration (alpha, rho, nu) at fixed beta,
   grid-search init + Nelder-Mead, scipy-free.
 - SVI raw parameterisation with total-variance / IV conversion.
 - No-arbitrage checks: butterfly density + calendar monotonicity.

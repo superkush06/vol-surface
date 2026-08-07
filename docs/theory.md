@@ -21,7 +21,7 @@ expectation of its payoff, so
 $$C(K) = e^{-rT}\,\mathbb{E}\!\left[(S_T - K)^+\right]
        = e^{-rT}\int_K^\infty (s - K)\, q(s)\, \mathrm{d}s .$$
 
-Differentiate twice in $K$ — the Breeden–Litzenberger identity (1978):
+Differentiate twice in $K$ to get the Breeden–Litzenberger identity (1978):
 
 $$\frac{\partial^2 C}{\partial K^2} = e^{-rT} q(K).$$
 
@@ -30,14 +30,14 @@ up to discounting. That one line drives everything else in this library:
 
 - A smile is not a curve you may draw freely. It is a density in disguise.
 - $\partial^2 C/\partial K^2 \ge 0$ is not a modelling preference. A negative
-  value is a butterfly spread — long $K-h$, short two $K$, long $K+h$ — with
+  value is a butterfly spread (long $K-h$, short two $K$, long $K+h$) with
   non-negative payoff and negative cost.
 - The condition is a statement about *prices at one forward*, which is why
   `butterfly_violations` takes `forward` as a required argument. Pricing each
   strike triple at its own middle strike, as if spot moved between quotes,
   answers a different and wrong question.
 
-## 2. Black-Scholes as a quoting convention — `black_scholes.py`
+## 2. Black-Scholes as a quoting convention (`black_scholes.py`)
 
 With continuous dividends $q$,
 
@@ -49,7 +49,7 @@ change of variables: an invertible map from price to a number, $\sigma$, that
 is comparable across strikes and maturities. Everything downstream models
 $\sigma(K, T)$, not price.
 
-## 3. Inverting the convention — `iv.py`
+## 3. Inverting the convention (`iv.py`)
 
 $C(\sigma)$ is strictly increasing on $(0,\infty)$, since
 
@@ -69,7 +69,7 @@ $[10^{-6},\,5]$ the error says which end it fell off, because for short-dated
 or event-driven names the upper bracket is a real constraint and not a
 theoretical one.
 
-## 4. SABR — `sabr.py`, `sabr_fit.py`
+## 4. SABR (`sabr.py`, `sabr_fit.py`)
 
 $$\mathrm{d}F = \alpha F^\beta\,\mathrm{d}W_1, \qquad
 \mathrm{d}\alpha = \nu \alpha\,\mathrm{d}W_2, \qquad
@@ -105,14 +105,14 @@ $$\frac{z}{x(z)} = 1 + \frac{\rho z}{2}
 otherwise, applying the time correction on both paths. The at-the-money value
 is then the limit of one formula rather than a special case, and
 `examples/fit_sabr.py` shows the vol converging to it at the expected linear
-rate in $z$ — the gap falls by a factor of 100 for every two decades $K$
+rate in $z$: the gap falls by a factor of 100 for every two decades $K$
 moves towards $F$.
 
-Calibration fixes $\beta$ — a scale convention, not identifiable from one
-slice, since $\beta$ and $\rho$ trade off — and fits $(\alpha, \rho, \nu)$ by
+Calibration fixes $\beta$, a scale convention that is not identifiable from
+one slice because $\beta$ and $\rho$ trade off, and fits $(\alpha, \rho, \nu)$ by
 weighted least squares from a coarse grid start.
 
-## 5. SVI — `svi.py`
+## 5. SVI (`svi.py`)
 
 Gatheral's raw parameterisation (2004) models *total implied variance*
 $w(k) = \sigma_{\text{iv}}^2(k)\,T$ against log-moneyness $k = \ln(K/F)$:
@@ -122,7 +122,7 @@ $$w(k) = a + b\Big(\rho\,(k - m) + \sqrt{(k-m)^2 + \sigma^2}\Big).$$
 Five parameters, each with a job: $a$ sets the level, $b$ the overall angle
 between the wings, $\rho$ the tilt between them, $m$ the horizontal position
 of the minimum, $\sigma$ how rounded the elbow is. The wings are
-asymptotically linear in $k$ with slopes $b(1 \mp \rho)$ — exactly the shape
+asymptotically linear in $k$ with slopes $b(1 \mp \rho)$, exactly the shape
 Lee's moment formula (2004) says an arbitrage-free smile must have, which is
 the reason for this functional form rather than a spline.
 
@@ -130,7 +130,7 @@ Total variance is the natural coordinate. It is the quantity that has to be
 monotone across maturities, it is linear in $T$ for a flat surface, and it
 stays finite at the short end where $\sigma_{\text{iv}}$ would not.
 
-## 6. Butterfly arbitrage: the $g(k)$ function — `svi.py`
+## 6. Butterfly arbitrage: the $g(k)$ function (`svi.py`)
 
 Rewriting Breeden–Litzenberger in log-moneyness expresses the density of $k$
 directly in terms of the slice. Gatheral and Jacquier (2014) show that for
@@ -168,14 +168,14 @@ occurs*, since knowing which strikes are implicated is the point of running
 the check. `fit_svi_slice` runs that scan on its own output and warns rather
 than returning an inadmissible slice in silence.
 
-## 7. Calendar arbitrage — `noarb.py`, `surface.py`
+## 7. Calendar arbitrage (`noarb.py`, `surface.py`)
 
 For $T_1 < T_2$ a calendar spread cannot be worth less than nothing, which in
 total-variance coordinates is the clean statement
 
 $$w(k, T_1) \le w(k, T_2) \quad \text{for every } k$$
 
-(Gatheral 2004 — in $k$, not in strike, because the forward moves with $T$).
+(Gatheral 2004, in $k$ rather than strike, because the forward moves with $T$).
 `SVISurface` interpolates $w$ linearly in $T$ between fitted slices, which
 preserves the ordering for free: if the slices are ordered at $k$, so is
 every point between them. Below the front expiry $w$ is scaled proportionally
@@ -183,7 +183,7 @@ to $T$ rather than held flat, because holding $w$ flat sends
 $\sigma_{\text{iv}} = \sqrt{w/T} \to \infty$ as $T \to 0$, which is not a
 boundary condition anyone wants.
 
-## 8. Quasi-explicit calibration — `surface.py`
+## 8. Quasi-explicit calibration (`surface.py`)
 
 Fitting raw SVI looks like a five-parameter least-squares problem, and
 treated as one it fails. The objective has a deep local minimum at

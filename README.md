@@ -2,6 +2,22 @@
 
 [![ci](https://github.com/superkush06/vol-surface/actions/workflows/ci.yml/badge.svg)](https://github.com/superkush06/vol-surface/actions/workflows/ci.yml)
 
+A detailed record of experiments and visualisations on implied-volatility
+surfaces, with the calibration code that produced them.
+
+### ▶ [**Click here to run it in your browser**](https://superkush06.github.io/vol-surface/demo/)
+
+| | | |
+|---|---|---|
+| **00** | Surface | turn a fitted five-expiry surface, and reshape it |
+| **01** | Invert | price in, volatility out, plus the raw-quote screens |
+| **02** | Break it | push SVI until the implied density goes negative |
+| **03** | Calibrate | fit noisy marks and watch the residuals move |
+| **04** | SABR | a second model, calibrated to the same quotes |
+
+Nothing there is precomputed. The page runs this package under Pyodide, so
+every figure is the library answering in your tab.
+
 `vol-surface` fits implied-volatility smiles and surfaces: Black-Scholes,
 Brent inversion, SABR, SVI, and multi-expiry surfaces. Python 3.11+, standard
 library only at run time, no scipy.
@@ -16,12 +32,12 @@ pass the forward instead of guessing one.
 
 ![the butterfly condition, diagnosed and repaired](docs/hero.png)
 
-The left panel is Axel Vogt's SVI slice — Gatheral and Jacquier's standard
-butterfly-arbitrage counterexample, and the point of it is that it looks like
+The left panel is Axel Vogt's SVI slice, Gatheral and Jacquier's standard
+butterfly-arbitrage counterexample. The point of it is that it looks like
 any other smile. The middle panel evaluates Gatheral–Jacquier's $g(k)$ on it:
 on the call wing $g$ reaches −0.0329, and $g \ge 0$ is exactly the condition
 for the slice to come from a probability distribution. The right panel shows
-what that means in prices — the density is negative for $0.642 < k < 1.256$
+what that means in prices: the density is negative for $0.642 < k < 1.256$
 (the same interval the validation table reports below), so a butterfly struck
 there has non-negative payoff and negative cost. The dashed green curve is the
 same fit run with `butterfly_penalty=1e5`: its density is non-negative
@@ -38,7 +54,7 @@ pytest          # 94 tests
 ```
 
 The `dev` extra pulls in pytest, ruff, and numpy. numpy is not used by
-`volsurf` itself — only by `examples/validate.py`. The figures need a second
+`volsurf` itself, only by `examples/validate.py`. The figures need a second
 extra, `.[plot]`; see [Reproducing everything](#reproducing-everything).
 
 ## Price, and invert
@@ -54,13 +70,13 @@ bs.vega(0.21)               # 27.720639344633113
 
 The solver is bracketed, not Newton: vega vanishes in the wings, so a Newton
 step there diverges. If the vol falls outside the bracket, the error says
-which end it fell off — which matters for short-dated names:
+which end it fell off, which matters for short-dated names:
 
 ```python
 implied_vol(45.0, BlackScholes(S=100, K=200, T=0.02))
 # IVSolverError: implied vol exceeds the upper bracket hi=5.0: the option
 # price at sigma=5.0 is still below the market price (short-dated / event
-# vols can do this — pass a larger `hi`)
+# vols can do this; pass a larger `hi`)
 ```
 
 ## Calibrate
@@ -100,7 +116,7 @@ error on the very nodes it was fitting. The inset shows the corner.
 `fit_svi_slice` uses the De Marco/Zeliade reduction instead: for fixed
 $(m, \sigma)$ the remaining three parameters are a linear least-squares
 problem, solved exactly by a 3×3 system, so only a two-dimensional outer
-search remains. Same data, same objective, same machine — max relative error
+search remains. Same data, same objective, same machine. Max relative error
 $2.1\times10^{-8}$ against 33%, seven orders of magnitude, decided by how the
 search was posed.
 
@@ -152,7 +168,7 @@ calendar condition is a simple ordering.
 The left panel is an index-like surface fitted from 21 strikes at each of five
 expiries: iso-vol contours over log-moneyness and maturity, put skew steep at
 one month and flatter at two years. The right panel asks the one question that
-couples the expiries — does total variance rise in $T$ at every strike? Every
+couples the expiries: does total variance rise in $T$ at every strike? Every
 curve is increasing, so `calendar_arbitrage_free()` returns `True`. Below the
 front expiry $w$ is scaled proportionally to $T$; clamping it flat instead, as
 a naive implementation does, sends implied vol to infinity as $T \to 0$.
@@ -165,7 +181,7 @@ both arbitrage checks, and a vol at nine months, where nobody quoted.
 
 Testing a library against itself only shows it is self-consistent.
 [`docs/validation.md`](docs/validation.md) is the other kind of evidence: each
-row compares `volsurf` to something outside it — a closed form stated in the
+row compares `volsurf` to something outside it: a closed form stated in the
 source paper, a limit the model has to collapse to, a Monte Carlo of the SDE
 the formula only approximates, or a second screen sharing no code with the
 first. A few of the rows:
@@ -175,13 +191,13 @@ first. A few of the rows:
 | SABR at the money, over 2,000 random parameter sets | rel err `2.6e-15` | Hagan et al. (2002), `σ_B(f,f)` written out from the paper |
 | SABR vols against the SABR SDE at `ν²T = 0.16` | `+1.5 bp` at the money | conditional Monte Carlo, s.e. `1.0 bp` |
 | SABR vols against the SABR SDE at `ν²T = 3.2` | **`+393 bp`** at the money | the same simulation, s.e. `2.2 bp` |
-| `g(k)` far in the wing | max err `3.0e-08` | `1/4 - b²(1+ρ)²/16`, non-negative iff `b(1+ρ) ≤ 2` — Lee (2004) |
+| `g(k)` far in the wing | max err `3.0e-08` | `1/4 - b²(1+ρ)²/16`, non-negative iff `b(1+ρ) ≤ 2`, Lee (2004) |
 | SSVI slices inside the Gatheral–Jacquier conditions | min `g` = `+0.003137`, 0 violations in 500 near-boundary draws | `g(k) ≥ 0` |
 | The two butterfly screens on the Vogt slice | `g < 0` on `k ∈ [0.642, 1.256]` | prices flag `k ∈ [0.650, 1.250]` |
 
 The third row is the one to read. `sabr_iv` matches Hagan's own at-the-money
-expression to fourteen digits — that is what a max relative error of `2.6e-15`
-buys — and is four vol points away from the model that expression approximates,
+expression to fourteen digits, which is what a max relative error of `2.6e-15`
+buys, and is four vol points away from the model that expression approximates,
 because at `ν²T = 3.2` the expansion has left its regime. That is a property of
 the formula, not an error in the transcription, and `docs/validation.md` gives
 the numbers for it. It also gives the `4 bp` the library gives up in the far
@@ -195,7 +211,7 @@ Separately, `tests/test_properties.py` asserts invariants rather than fixtures:
 put-call parity, the static bounds, Greeks against differences of the price,
 `∂²C/∂K²` against the lognormal density, SABR's scale invariance and its
 `β = 0` reflection symmetry, the SVI density's unit mass and martingale
-condition, and the fitter's recovery of random parameter draws — all on seeded
+condition, and the fitter's recovery of random parameter draws, all on seeded
 pseudo-random inputs.
 
 ## Where this sits
@@ -250,7 +266,7 @@ in [`docs/theory.md`](docs/theory.md).
 
 - **Enforce the calendar condition.** Slices are fitted independently and the
   ordering is checked afterwards. Enforcing it during calibration means a fit
-  coupled across expiries — SSVI is the usual route, and it is not here.
+  coupled across expiries. SSVI is the usual route, and it is not here.
 - **Guarantee an arbitrage-free fit.** `butterfly_penalty` is a soft penalty,
   not a projection, and the difference is not academic. On the Vogt slice it
   pulls `min g(k)` from `-0.0328` to within `1e-4` of zero, better than two
@@ -292,4 +308,4 @@ are scripts rather than package code.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
