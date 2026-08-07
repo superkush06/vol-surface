@@ -91,6 +91,8 @@ function watch(sel, go) {
 /* ===== 00 · the surface ================================================== */
 
 let SURF = null;
+const SHAPE = { level: 1, skew: 1, wings: 1 };
+let shapeH = {};
 
 // Vol is the only quantity here, so it gets a single monotone ramp: paper
 // through to ink through a warm mid. A two-hue scale would imply a midpoint
@@ -250,19 +252,60 @@ function surfControls() {
 
 async function computeSurf() {
   if (SURF) return;
-  $("#surfNote").textContent = "fitting";
-  SURF = await pyJSON("vs.surface_grid()");
+  await refreshSurf();
+  surfControls();
+  const mk = (id, out, lo, hi, key) =>
+    slider($(id), $(out), lo, hi, SHAPE[key], CALM,
+           (v) => { SHAPE[key] = v; refreshSurf(); },
+           (v) => v.toFixed(2) + "×");
+  shapeH.level = mk("#slLev", "#vLev", 0.4, 2.0, "level");
+  shapeH.skew = mk("#slSkw", "#vSkw", 0.0, 1.4, "skew");
+  shapeH.wings = mk("#slWng", "#vWng", 0.4, 2.5, "wings");
+}
+
+// Each shape is five slices refitted from scratch, which is why this takes a
+// beat: the sheet is the output of a calibration, not a parametric surface
+// being redrawn.
+async function refreshSurf() {
+  $("#surfNote").textContent = "refitting five slices";
+  const g = await pyJSON(`vs.surface_grid(nk=41, nt=31, level=${SHAPE.level}, ` +
+                         `skew=${SHAPE.skew}, wings=${SHAPE.wings})`);
   runs += 5; tally();
-  $("#surfNote").textContent = `${SURF.ts.length} expiries interpolated`;
-  $("#surfState").textContent = `vol ${(SURF.vmin * 100).toFixed(1)}% to ${(SURF.vmax * 100).toFixed(1)}%`;
-  drawSurf(); surfControls();
+  if (!g.ok) {
+    $("#surfNote").textContent = "no admissible fit at this shape";
+    $("#surfState").textContent = g.why || "";
+    const v = $("#surfVerdict"); v.classList.add("bad");
+    $("#svTag").textContent = "no fit";
+    $("#svMsg").textContent =
+      "The fitter could not land a slice at this shape, so the surface above is the last one that held.";
+    return;
+  }
+  SURF = g;
+  drawSurf();
+  $("#surfNote").textContent = `${SURF.ts.length} expiries interpolated from 5`;
+  $("#surfState").textContent =
+    `vol ${(SURF.vmin * 100).toFixed(1)}% to ${(SURF.vmax * 100).toFixed(1)}%`;
+  const clean = SURF.calendar_free && SURF.butterfly_free;
+  const v = $("#surfVerdict");
+  v.classList.toggle("bad", !clean);
+  $("#svTag").textContent = clean ? "admissible" : "arbitrage";
+  $("#svMsg").innerHTML = clean
+    ? `Calendar and butterfly both clean. One-year ATM
+       <span class="n">${((SURF.atm_1y || 0) * 100).toFixed(1)}%</span>, skew
+       <span class="n">${((SURF.skew_1y || 0) * 100).toFixed(1)}</span> vol points across
+       k = &plusmn;0.2.`
+    : `This surface fails a no-arbitrage check: calendar
+       ${SURF.calendar_free ? "clean" : "violated"}, butterfly
+       ${SURF.butterfly_free ? "clean" : "violated"}. Steep enough wings or a high enough
+       level and the fit stops being admissible.`;
   $("#sSurf").innerHTML =
-    `Five slices were fitted and the surface fills in the rest, so the
-     <span class="n">${SURF.ts.length}</span> rows drawn here come from
-     <span class="n">5</span> that were quoted. Vol runs from
-     <span class="n">${(SURF.vmin * 100).toFixed(1)}%</span> to
-     <span class="n">${(SURF.vmax * 100).toFixed(1)}%</span>, rising into the downside wing
-     and flattening as expiry grows, which is the shape equity options actually trade at.`;
+    `Five slices are refitted every time you move a handle, and the
+     <span class="n">${SURF.ts.length}</span> rows drawn come from those
+     <span class="n">5</span>. <span class="n">Level</span> scales total variance,
+     <span class="n">skew</span> leans rho toward the downside, and
+     <span class="n">wings</span> steepens b. Push level or wings far enough and the
+     butterfly check fails, which is the same test experiment one is about, applied to a
+     whole surface instead of one slice.`;
 }
 
 /* ===== 01 · break it ===================================================== */
@@ -496,7 +539,8 @@ async function computeFit() {
 
 /* ===== 03 · SABR ========================================================= */
 
-let SB = null;
+let SB = null, SBP = null, SBC = null;
+let sabrH = {};
 
 function drawSabr() {
   const H = 300;
@@ -504,11 +548,15 @@ function drawSabr() {
   if (!SB) return;
   const padL = 60, padR = 20, top = 26, bot = 40;
   const pw = w - padL - padR, ph = H - top - bot;
-  const all = SB.quotes.concat(SB.sabr, SB.svi).filter((v) => v !== null);
-  const lo = Math.min(...all) * 0.97, hi = Math.max(...all) * 1.03;
+  // Scale to the quotes and the fitted lines only. A hand-set SABR can leave
+  // the chart entirely, and rescaling for it would flatten everything else
+  // into a line; it is clipped and labelled instead.
+  const base = SB.quotes.concat(SB.svi, SB.sabr).filter((v) => v !== null);
+  const lo = Math.min(...base) * 0.90, hi = Math.max(...base) * 1.12;
   const ks = SB.ks;
   const X = (k) => padL + (k - ks[0]) / (ks[ks.length - 1] - ks[0]) * pw;
   const Y = (v) => top + ph - (v - lo) / (hi - lo) * ph;
+  const clamp = (y) => Math.max(top - 6, Math.min(top + ph + 6, y));
 
   c.font = MONO(9.5, 500); c.textBaseline = "middle";
   for (let i = 0; i <= 4; i++) {
@@ -524,14 +572,35 @@ function drawSabr() {
   [-0.4, -0.2, 0, 0.2, 0.4].forEach((k) => c.fillText(k.toFixed(1), X(k), H - 22));
   c.fillText("LOG-MONEYNESS  k", padL + pw / 2, H - 8);
 
-  [["svi", CALM, `SVI  ${SB.svi_bp.toFixed(1)}bp`],
-   ["sabr", GOLD, `SABR  ${SB.sabr_bp.toFixed(1)}bp`]].forEach(([key, col, name]) => {
-    c.strokeStyle = col; c.lineWidth = 2.4; c.beginPath();
-    SB[key].forEach((v, j) => (j ? c.lineTo(X(ks[j]), Y(v)) : c.moveTo(X(ks[j]), Y(v))));
-    c.stroke();
-    c.fillStyle = col; c.font = MONO(11, 500); c.textAlign = "left";
-    c.fillText(name, X(ks[ks.length - 1]) - 92, Y(SB[key][SB[key].length - 1]) - 12);
+  // the fitted SVI, for reference
+  c.strokeStyle = CALM; c.lineWidth = 2.2; c.beginPath();
+  SB.svi.forEach((v, j) => (j ? c.lineTo(X(ks[j]), Y(v)) : c.moveTo(X(ks[j]), Y(v))));
+  c.stroke();
+  c.fillStyle = CALM; c.font = MONO(11, 500); c.textAlign = "left";
+  c.fillText(`SVI  ${SB.svi_bp.toFixed(1)}bp`,
+             X(ks[ks.length - 1]) - 92, clamp(Y(SB.svi[SB.svi.length - 1]) - 12));
+
+  // and SABR wherever the handles have it
+  const cur = SBC || { ks: SB.ks, iv: SB.sabr, bp: SB.sabr_bp };
+  let off = false;
+  c.strokeStyle = GOLD; c.lineWidth = 2.4; c.beginPath();
+  let started = false;
+  cur.iv.forEach((v, j) => {
+    if (v === null) { started = false; return; }
+    const y = Y(v);
+    if (y < top - 6 || y > top + ph + 6) off = true;
+    started ? c.lineTo(X(cur.ks[j]), clamp(y)) : (c.moveTo(X(cur.ks[j]), clamp(y)), started = true);
   });
+  c.stroke();
+  c.fillStyle = GOLD; c.textAlign = "left";
+  const lastY = clamp(Y(cur.iv[cur.iv.length - 1] || SB.sabr[SB.sabr.length - 1]));
+  c.fillText(`SABR  ${cur.bp === null ? "n/a" : cur.bp.toFixed(1) + "bp"}`,
+             X(ks[ks.length - 1]) - 100, lastY + 14);
+  if (off) {
+    c.fillStyle = WARN; c.font = MONO(9.5, 500); c.textAlign = "right";
+    c.fillText("SABR CURVE CLIPPED", padL + pw - 4, top + 11);
+  }
+
   c.fillStyle = INK;
   SB.quotes.forEach((v, j) => {
     c.beginPath(); c.arc(X(ks[j]), Y(v), 2.6, 0, 7); c.fill();
@@ -545,20 +614,51 @@ async function computeSabr() {
   $("#sabrNote").textContent = "fitting both models";
   SB = await pyJSON("vs.sabr_fit()");
   runs += 2; tally();
-  drawSabr();
+  SBP = { alpha: SB.alpha, beta: SB.beta, rho: SB.rho, nu: SB.nu };
+  drawSabr(); saySabr();
   $("#sabrNote").textContent = "one-year slice, 21 strikes";
-  $("#sabrState").textContent = `beta fixed at ${SB.beta}`;
-  const better = SB.svi_bp <= SB.sabr_bp ? "SVI" : "SABR";
-  $("#sSabr").innerHTML =
-    `On this slice SVI lands at <span class="n">${SB.svi_bp.toFixed(1)} bp</span> and SABR at
-     <span class="n">${SB.sabr_bp.toFixed(1)} bp</span>, so ${better} fits the marks more
-     closely. That is the expected ordering rather than a verdict on the models: SVI has five
-     free parameters shaping one slice, while SABR has three here with beta pinned, and its
-     smile is the output of a stochastic-volatility model rather than a shape chosen to fit.
-     The fitted SABR is <span class="n">alpha ${SB.alpha}</span>,
-     <span class="n">rho ${SB.rho}</span>, <span class="n">nu ${SB.nu}</span>. What you buy
-     with the tighter SVI fit is flexibility, and what you give up is a model that says
-     anything about how the volatility got there.`;
+
+  const mk = (id, out, lo, hi, key, fmt) =>
+    slider($(id), $(out), lo, hi, SBP[key], GOLD,
+           (v) => { SBP[key] = v; refreshSabr(); }, fmt);
+  sabrH.alpha = mk("#slAl", "#vAl", 0.3, 4.0, "alpha", (v) => v.toFixed(3));
+  sabrH.beta = mk("#slBe", "#vBe", 0.0, 1.0, "beta", (v) => v.toFixed(2));
+  sabrH.rho = mk("#slRh", "#vRh", -0.95, 0.95, "rho", (v) => v.toFixed(2));
+  sabrH.nu = mk("#slNu", "#vNu", 0.05, 2.0, "nu", (v) => v.toFixed(3));
+  $("#sabrReset").addEventListener("click", () => {
+    SBP = { alpha: SB.alpha, beta: SB.beta, rho: SB.rho, nu: SB.nu };
+    Object.keys(sabrH).forEach((k) => sabrH[k].set(SBP[k]));
+    refreshSabr();
+  });
+}
+
+async function refreshSabr() {
+  SBC = await pyJSON(`vs.sabr_curve(${SBP.alpha}, ${SBP.beta}, ${SBP.rho}, ${SBP.nu})`);
+  runs += 1; tally();
+  drawSabr(); saySabr();
+}
+
+function saySabr() {
+  const bp = SBC ? SBC.bp : SB.sabr_bp;
+  const atFit = !SBC || Math.abs(bp - SB.sabr_bp) < 0.05;
+  $("#sabrState").textContent =
+    `SABR ${bp === null ? "n/a" : bp.toFixed(1) + "bp"} · SVI ${SB.svi_bp.toFixed(1)}bp`;
+  $("#sSabr").innerHTML = atFit
+    ? `Fitted, SABR lands at <span class="n">${SB.sabr_bp.toFixed(1)} bp</span> against SVI's
+       <span class="n">${SB.svi_bp.toFixed(1)} bp</span>. That ordering is expected rather
+       than a verdict: SVI has five free parameters shaping one slice, SABR has three here
+       with beta pinned, and its smile is the output of a stochastic-volatility model rather
+       than a shape chosen to fit. Move the handles and the fit is rescored against the same
+       21 marks, so you can see how quickly it degrades away from the optimum.`
+    : `At <span class="n">alpha ${SBP.alpha.toFixed(3)}</span>,
+       <span class="n">beta ${SBP.beta.toFixed(2)}</span>,
+       <span class="n">rho ${SBP.rho.toFixed(2)}</span>,
+       <span class="n">nu ${SBP.nu.toFixed(3)}</span> the error against the same 21 marks is
+       <span class="n">${bp === null ? "undefined" : bp.toFixed(1) + " bp"}</span>, against
+       <span class="n">${SB.sabr_bp.toFixed(1)} bp</span> at the fitted parameters. Note how
+       much of that comes from <span class="n">alpha</span> alone: it sets the level, and
+       what it means depends on <span class="n">beta</span>, because alpha is the volatility
+       of F to the beta rather than of F itself.`;
 }
 
 /* ===== chrome ============================================================ */
@@ -594,7 +694,9 @@ document.fonts.ready.then(redraw);
     // ImportError with nothing pointing at the cause.
     const fresh = { cache: "no-store" };
     const stamp = await (await fetch("bundle.json", fresh)).json();
-    const v = `?v=${stamp.sha}`;
+    // The zip's hash cannot version vs.py, which is fetched separately and is
+    // not in it. Carry the driver's own hash so editing it busts the cache.
+    const v = `?v=${stamp.sha}${stamp.driver ? "-" + stamp.driver : ""}`;
     py.unpackArchive(await (await fetch("volsurf-pkg.zip" + v, fresh)).arrayBuffer(), "zip");
     py.FS.writeFile("vs.py", await (await fetch("vs.py" + v, fresh)).text());
     await pyRun("import sys; sys.path.insert(0,'.')\nimport vs");

@@ -103,12 +103,31 @@ def truth_params(T=1.0):
 # 02: calibrate to quotes that are not clean
 # ---------------------------------------------------------------------------
 
-def quoted_slices(noise_bps=NOISE_BPS, seed=20260727):
+def shaped(p, level=1.0, skew=1.0, wings=1.0):
+    """The truth slice with its level, skew and wings scaled.
+
+    `level` moves total variance up and down, `skew` leans rho toward or away
+    from the downside, and `wings` steepens b. Together they are enough to
+    walk the whole surface from a flat sheet to a pronounced smirk without
+    leaving the region where SVI is well defined.
+    """
+    return SVIRawParams(
+        a=p.a * level,
+        b=max(0.004, p.b * wings),
+        rho=max(-0.985, min(0.985, p.rho * skew)),
+        m=p.m,
+        sigma=p.sigma,
+    )
+
+
+def quoted_slices(noise_bps=NOISE_BPS, seed=20260727,
+                  level=1.0, skew=1.0, wings=1.0):
     rng = random.Random(seed)
     ks = [round(-0.5 + 0.05 * i, 3) for i in range(21)]
     out = []
-    for T, p in TRUTH.items():
-        vols = [math.sqrt(svi_w(k, p) / T)
+    for T, p0 in TRUTH.items():
+        p = shaped(p0, level, skew, wings)
+        vols = [math.sqrt(max(1e-8, svi_w(k, p)) / T)
                 + rng.uniform(-1.0, 1.0) * noise_bps * 1e-4 for k in ks]
         out.append((T, ks, [v * v * T for v in vols], vols))
     return out
@@ -135,30 +154,64 @@ def fit_surface(noise_bps=NOISE_BPS, seed=20260727):
     return {
         "rows": rows,
         "noise_bps": noise_bps,
-        "calendar_free": surf.calendar_arbitrage_free(),
-        "butterfly_free": surf.butterfly_arbitrage_free(KLO, KHI),
+        "calendar_free": _try(surf.calendar_arbitrage_free),
+        "butterfly_free": _try(lambda: surf.butterfly_arbitrage_free(KLO, KHI)),
         "worst_bp": max(r["rms_bp"] for r in rows),
         "best_bp": min(r["rms_bp"] for r in rows),
     }
 
 
-def surface_grid(nk=49, nt=41):
+def surface_grid(nk=49, nt=41, level=1.0, skew=1.0, wings=1.0):
     """Implied vol over (log-moneyness, expiry), for the opening figure."""
-    sl = quoted_slices()
-    surf = fit_svi_surface([(T, ks, ws) for T, ks, ws, _ in sl])
+    # A shape the reader chose may be one the fitter cannot land, and this
+    # must degrade rather than raise: the page reports the failure and keeps
+    # the last good surface on screen.
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        try:
+            sl = quoted_slices(level=level, skew=skew, wings=wings)
+            surf = fit_svi_surface([(T, ks, ws) for T, ks, ws, _ in sl])
+        except Exception as exc:
+            return {"ok": False, "why": str(exc)[:120]}
     ks = [KLO + (KHI - KLO) * i / (nk - 1) for i in range(nk)]
     lo, hi = 1 / 12, 2.0
     ts = [lo * (hi / lo) ** (j / (nt - 1)) for j in range(nt)]
-    grid = [[round(surf.iv(k, T), 6) for k in ks] for T in ts]
-    flat = [v for row in grid for v in row]
+    grid = []
+    for T in ts:
+        row = []
+        for k in ks:
+            try:
+                row.append(round(surf.iv(k, T), 6))
+            except Exception:
+                row.append(None)
+        grid.append(row)
+    flat = [v for row in grid for v in row if v is not None]
+    if not flat:
+        return {"ok": False, "why": "no admissible slice at this shape"}
+    fill = sum(v is not None for v in
+               (x for row in grid for x in row)) / (len(ts) * len(ks))
     return {
+        "ok": True,
+        "fill": round(fill, 4),
         "ks": [round(k, 4) for k in ks],
         "ts": [round(t, 5) for t in ts],
         "grid": grid,
         "vmin": round(min(flat), 6), "vmax": round(max(flat), 6),
         "quoted_T": [round(t, 5) for t in TRUTH],
         "labels": [LABEL[t] for t in TRUTH],
+        "calendar_free": _try(surf.calendar_arbitrage_free),
+        "butterfly_free": _try(lambda: surf.butterfly_arbitrage_free(KLO, KHI)),
+        "atm_1y": _try(lambda: round(surf.iv(0.0, 1.0), 5)),
+        "skew_1y": _try(lambda: round(surf.iv(-0.2, 1.0) - surf.iv(0.2, 1.0), 5)),
     }
+
+
+def _try(fn):
+    try:
+        return fn()
+    except Exception:
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -189,15 +242,36 @@ def sabr_fit(T=1.0, F=100.0, beta=0.5, noise_bps=NOISE_BPS, seed=20260727):
     }
 
 
-def sabr_curve(alpha, rho, nu, beta=0.5, T=1.0, F=100.0, n=121):
-    """SABR smile for arbitrary parameters, so the page can expose the knobs."""
+def sabr_curve(alpha, beta, rho, nu, T=1.0, F=100.0,
+               noise_bps=NOISE_BPS, seed=20260727):
+    """A SABR smile at parameters the reader chose, scored against the quotes.
+
+    Same 21 marks the fitter saw, so the error here is comparable with the
+    fitted number rather than being a different measurement.
+    """
     p = SABRParams(alpha=alpha, beta=beta, rho=rho, nu=nu)
-    ks = [KLO + (KHI - KLO) * i / (n - 1) for i in range(n)]
-    out = []
+    sl = {row[0]: row for row in quoted_slices(noise_bps, seed)}
+    _, ks, _, vols = sl[T]
+    at_quotes, bad = [], False
     for k in ks:
         try:
-            out.append(round(sabr_iv(F, F * math.exp(k), T, p), 6))
+            at_quotes.append(sabr_iv(F, F * math.exp(k), T, p))
         except Exception:
-            out.append(None)
-    return {"ks": [round(k, 4) for k in ks], "iv": out,
-            "atm": out[n // 2] if out[n // 2] is not None else None}
+            at_quotes.append(None); bad = True
+    good = [(f, v) for f, v in zip(at_quotes, vols, strict=True) if f is not None]
+    rms = (math.sqrt(sum((f - v) ** 2 for f, v in good) / len(good))
+           if good else float("nan"))
+    fine = [KLO + (KHI - KLO) * i / 120 for i in range(121)]
+    curve = []
+    for k in fine:
+        try:
+            curve.append(round(sabr_iv(F, F * math.exp(k), T, p), 6))
+        except Exception:
+            curve.append(None)
+    return {
+        "ks": [round(k, 4) for k in fine], "iv": curve,
+        "at_quotes": [None if v is None else round(v, 6) for v in at_quotes],
+        "bp": round(rms * 1e4, 1) if good else None,
+        "defined": not bad,
+        "atm": round(sabr_iv(F, F, T, p), 6) if not bad else None,
+    }

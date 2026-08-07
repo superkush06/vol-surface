@@ -52,7 +52,13 @@ def build(out: pathlib.Path = BUNDLE, root: pathlib.Path | None = None) -> int:
     # is a request to revalidate, and a CDN or a browser is free to answer it
     # from a stale copy; a URL that changes when the bytes change is not.
     sha = hashlib.sha256(out.read_bytes()).hexdigest()[:12]
-    STAMP.write_text(json.dumps({"sha": sha, "modules": len(files)}) + "\n")
+    # vs.py is fetched separately and is not in the zip, so the zip's hash
+    # cannot version it. Stamp it too, or editing the driver leaves a cached
+    # copy in front of it.
+    driver = out.parent / "vs.py"
+    dsha = hashlib.sha256(driver.read_bytes()).hexdigest()[:8] if driver.exists() else ""
+    STAMP.write_text(json.dumps(
+        {"sha": sha, "driver": dsha, "modules": len(files)}) + "\n")
     return len(files)
 
 

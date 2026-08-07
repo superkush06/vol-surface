@@ -195,6 +195,24 @@
 
 <div class="wide">
   <figure><canvas id="surf"></canvas></figure>
+
+  <div class="verdict" id="surfVerdict"><b id="svTag">checking</b><span id="svMsg"></span></div>
+
+  <div class="rig">
+    <div class="ctl">
+      <div class="lab"><b>Vol level</b><i id="vLev">1.00&times;</i></div>
+      <div class="sl" id="slLev" tabindex="0" role="slider" aria-label="Overall volatility level"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>Skew</b><i id="vSkw">1.00&times;</i></div>
+      <div class="sl" id="slSkw" tabindex="0" role="slider" aria-label="Skew strength"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>Wings</b><i id="vWng">1.00&times;</i></div>
+      <div class="sl" id="slWng" tabindex="0" role="slider" aria-label="Wing steepness"></div>
+    </div>
+  </div>
+
   <div class="bar">
     <span class="m" id="surfNote">waiting</span>
     <span class="m" id="surfState"></span>
@@ -306,6 +324,30 @@
 
 <div class="wide">
   <figure><canvas id="sabrfig"></canvas></figure>
+
+  <div class="rig">
+    <div class="ctl">
+      <div class="lab"><b>alpha &nbsp;level</b><i id="vAl">1.884</i></div>
+      <div class="sl" id="slAl" tabindex="0" role="slider" aria-label="SABR alpha"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>beta &nbsp;backbone</b><i id="vBe">0.50</i></div>
+      <div class="sl" id="slBe" tabindex="0" role="slider" aria-label="SABR beta"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>rho &nbsp;correlation</b><i id="vRh">-0.25</i></div>
+      <div class="sl" id="slRh" tabindex="0" role="slider" aria-label="SABR rho"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>nu &nbsp;vol of vol</b><i id="vNu">0.585</i></div>
+      <div class="sl" id="slNu" tabindex="0" role="slider" aria-label="SABR nu"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>&nbsp;</b><i>&nbsp;</i></div>
+      <button class="m" id="sabrReset" style="padding:.34rem .62rem;border:1px solid var(--hair);border-radius:3px">&#8635; back to the fitted parameters</button>
+    </div>
+  </div>
+
   <div class="bar">
     <span class="m" id="sabrNote">waiting</span>
     <span class="m" id="sabrState"></span>
