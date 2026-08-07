@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>vol-surface: a volatility smile you can break</title>
+<title>vol-surface: an arbitrage-free volatility surface you can break</title>
 <meta name="description" content="An interactive volatility surface. Drag the five SVI parameters until the smile implies negative probability, and watch the arbitrage check catch it. Real calibration code compiled to WebAssembly, running in your browser." />
 <meta name="theme-color" content="#F7F4EF" />
 <meta name="author" content="Kushagra Behl" />
@@ -12,7 +12,7 @@
 <meta property="og:type" content="article" />
 <meta property="og:site_name" content="vol-surface" />
 <meta property="og:url" content="https://superkush06.github.io/vol-surface/demo/" />
-<meta property="og:title" content="vol-surface: a volatility smile you can break" />
+<meta property="og:title" content="vol-surface: an arbitrage-free volatility surface you can break" />
 <meta property="og:description" content="Drag the five SVI parameters until the smile implies negative probability, and watch the no-arbitrage check catch it. Real calibration code, compiled to WebAssembly and running in your browser." />
 <meta property="og:image" content="https://superkush06.github.io/vol-surface/demo/card.png" />
 <meta property="og:image:type" content="image/png" />
@@ -20,7 +20,7 @@
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="A volatility smile, the Gatheral-Jacquier butterfly function beneath it dipping below zero, and a risk-neutral density with a shaded region of negative probability." />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="vol-surface: a volatility smile you can break" />
+<meta name="twitter:title" content="vol-surface: an arbitrage-free volatility surface you can break" />
 <meta name="twitter:description" content="Drag the five SVI parameters until the smile implies negative probability, and watch the no-arbitrage check catch it." />
 <meta name="twitter:image" content="https://superkush06.github.io/vol-surface/demo/card.png" />
 
@@ -160,23 +160,26 @@
 <div id="prog"></div>
 
 <nav aria-label="Contents">
-  <a href="#surface"><i>00</i>Surface</a>
-  <a href="#break"><i>01</i>Break it</a>
-  <a href="#fit"><i>02</i>Calibrate</a>
-  <a href="#sabr"><i>03</i>SABR</a>
+  <a href="#invert"><i>00</i>Invert</a>
+  <a href="#surface"><i>01</i>Surface</a>
+  <a href="#break"><i>02</i>Break it</a>
+  <a href="#fit"><i>03</i>Calibrate</a>
+  <a href="#sabr"><i>04</i>SABR</a>
 </nav>
 
 <header class="text hero">
-  <span class="m">An interactive visualisation &nbsp;::&nbsp; three experiments</span>
-  <h1>vol-surface: a volatility smile you can break</h1>
-  <p class="dek">A smile is a claim about where a stock can end up. Push it far enough and the
-    claim becomes incoherent: negative probability, and a portfolio that pays you to own it.
-    Every number here is computed in this tab by the calibration code itself.</p>
+  <span class="m">An interactive visualisation &nbsp;::&nbsp; five sections</span>
+  <h1>vol-surface: an arbitrage-free volatility surface you can break</h1>
+  <p class="dek">An implied-volatility slice is a claim about the risk-neutral distribution of
+    the terminal price. Push the parameters far enough and the claim becomes incoherent:
+    negative density, and a static arbitrage. SVI and SABR calibration with the
+    Gatheral-Jacquier conditions enforced, computed in this tab.</p>
   <div class="banner">
-    <span><b>00</b> &nbsp;The surface</span>
-    <span><b>01</b> &nbsp;Break it</span>
-    <span><b>02</b> &nbsp;Calibrate</span>
-    <span><b>03</b> &nbsp;SABR</span>
+    <span><b>00</b> &nbsp;The inversion</span>
+    <span><b>01</b> &nbsp;The surface</span>
+    <span><b>02</b> &nbsp;Break it</span>
+    <span><b>03</b> &nbsp;Calibrate</span>
+    <span><b>04</b> &nbsp;SABR</span>
   </div>
 </header>
 
@@ -194,18 +197,67 @@
     underlying.</p>
   <p><strong>Why it is a shape and not a number.</strong> If Black-Scholes were true, every
     strike would imply the same volatility and the plot would be flat. It never is. Plot
-    implied vol against <span class="n">k</span> for one expiry and you get a curve that sits
-    higher in the downside wing, which the market calls the <em>smile</em>, or the smirk in
-    equities. Stack those curves across expiries and you have a <em>surface</em>. Fitting one
+    implied vol against <span class="n">k</span> for one expiry and you get a curve. In FX it
+    is roughly symmetric and genuinely earns the name <em>smile</em>; in equity index options
+    it is monotone decreasing across most of the traded range, so <em>skew</em> or
+    <em>smirk</em> is the accurate word and the one used below, because downside puts are
+    persistently bid for crash protection. Both are slices of the same object. Stack them
+    across expiries and you have a <em>surface</em>. Fitting one
     means choosing a function that passes near every quote, and this library uses
-    <strong>SVI</strong>, Gatheral's stochastic-volatility-inspired parameterisation. It
-    describes one expiry with five numbers, and it works in <em>total variance</em>
-    <span class="n">w = &sigma;&sup2;T</span> rather than volatility, because total variance is
-    the quantity that has to keep growing with maturity for a surface to make sense.</p>
+    <strong>SVI</strong>, Gatheral's stochastic-volatility-inspired parameterisation, in raw
+    form <span class="n">w(k) = a + b(&rho;(k-m) + &radic;((k-m)&sup2; + &sigma;&sup2;))</span>.
+    Five numbers per expiry, working in <em>total implied variance</em>
+    <span class="n">w = &sigma;&sup2;<sub>BS</sub>T</span> rather than volatility, because
+    total variance is the quantity that must be monotone in maturity for the surface to be
+    free of calendar arbitrage. Slices are fitted quasi-explicitly: with
+    <span class="n">m</span> and <span class="n">&sigma;</span> held fixed the problem is
+    linear in the other three, so the search is two-dimensional rather than five.</p>
 </div>
 
-<div class="text open sect-first" id="surface">
+<div class="text open sect-first" id="invert">
   <div class="onum">00</div>
+  <span class="m">The inversion &middot; where every quoted vol comes from</span>
+  <h2>Price in, volatility out</h2>
+  <p class="thesis">Before there is a surface there is one option, one price, and the number
+    you have to solve for to explain it.</p>
+  <p>Everything above rests on being able to go both ways. Black-Scholes maps a volatility to
+    a price in closed form, and that direction is easy. The direction a desk actually needs is
+    the other one: a price is on the screen, and the volatility that produced it has to be
+    solved for, because the formula cannot be inverted algebraically. This library uses Brent's
+    method, bracketed between the no-arbitrage bounds on the price.</p>
+  <p>Below, a volatility is turned into a price at every strike and then recovered back out of
+    that price. If the two halves disagree, nothing further up the page means anything, so the
+    round trip is the first thing worth checking:</p>
+</div>
+
+<div class="wide">
+  <figure><canvas id="invert-fig"></canvas></figure>
+  <div class="verdict" id="invVerdict"><b id="ivTag">checking</b><span id="ivMsg"></span></div>
+  <div class="rig">
+    <div class="ctl">
+      <div class="lab"><b>Volatility in</b><i id="vSig">20.0%</i></div>
+      <div class="sl" id="slSig" tabindex="0" role="slider" aria-label="Input volatility"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>Maturity</b><i id="vTau">1.00y</i></div>
+      <div class="sl" id="slTau" tabindex="0" role="slider" aria-label="Maturity in years"></div>
+    </div>
+    <div class="ctl">
+      <div class="lab"><b>Quote noise for the screen</b><i id="vScr">25 bp</i></div>
+      <div class="sl" id="slScr" tabindex="0" role="slider" aria-label="Noise for the discrete screen"></div>
+    </div>
+  </div>
+  <div class="bar">
+    <span class="m" id="invNote">waiting</span>
+    <span class="m" id="invState"></span>
+  </div>
+</div>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment one</span>
+  <p id="sInvert"></p></div></div>
+<div class="endrule"><div></div></div>
+
+<div class="text open" id="surface">
+  <div class="onum">01</div>
   <span class="m">The surface &middot; fitted from quotes</span>
   <h2>Five expiries, one surface</h2>
   <p class="thesis">Twenty-one strikes at each of five expiries, quoted with noise, fitted
@@ -255,18 +307,19 @@
 <div class="endrule"><div></div></div>
 
 <div class="text open" id="break">
-  <div class="onum">01</div>
+  <div class="onum">02</div>
   <span class="m">Break it &middot; the arbitrage check</span>
-  <h2>Make the smile lie</h2>
+  <h2>Break the density</h2>
   <p class="thesis">Five numbers describe one slice. Two of them, pushed far enough, produce a
-    smile that no arbitrage-free market could quote.</p>
-  <p>A smile is not only a curve. It is a complete statement about where the stock can end
-    up. Breeden and Litzenberger showed in 1978 that the second derivative of the call price
-    with respect to strike <em>is</em> the risk-neutral probability density: the market's odds
-    on every outcome are already implied by the prices it is quoting, and you recover them by
-    differentiating twice. A smile and a probability distribution are therefore the same object
-    written two ways, and a smile with the wrong curvature describes a distribution that cannot
-    exist.</p>
+    slice that admits static arbitrage, and the library refuses to return it.</p>
+  <p>A slice is not only a curve. It is a complete statement about the risk-neutral
+    distribution of the terminal price. Breeden and Litzenberger showed in 1978 that
+    <span class="n">&part;&sup2;C/&part;K&sup2;</span>, the second derivative of the
+    undiscounted call price with respect to strike, <em>is</em> the risk-neutral density: the
+    market's odds on every outcome are already implied by the prices it quotes, and you
+    recover them by differentiating twice. A slice and a distribution are the same object
+    written two ways, and a slice with the wrong convexity in strike describes a measure that
+    is not a probability measure.</p>
   <p>That is what makes this a trade rather than a modelling complaint. Buy one call at
     <span class="n">K-d</span>, sell two at <span class="n">K</span>, buy one at
     <span class="n">K+d</span>, and you own a <em>butterfly</em>. It pays out only if the stock
@@ -276,10 +329,11 @@
     position that cannot lose. That is the arbitrage, and it is why a fitter that ignores the
     check is worse than useless.</p>
   <p>Below is one slice shown three ways. The <strong>smile</strong> is what a desk publishes.
-    <strong>g(k)</strong> is a function Gatheral and Jacquier derived in 2014 whose sign tests
-    that curvature directly: wherever <span class="n">g(k)</span> is negative the implied
-    density is negative there too, and it is cheaper to evaluate than the density, which is why
-    the library checks it. The <strong>density</strong> is the same failure seen literally, as
+    <strong>g(k)</strong> is the function Gatheral and Jacquier derived in 2014 from
+    <span class="n">w</span> and its first two derivatives in <span class="n">k</span>. Its
+    sign is the condition itself: <span class="n">g(k) &ge; 0</span> across the strip is
+    equivalent to a non-negative density, and it is far cheaper than differentiating prices,
+    which is why the library checks it rather than the density. The <strong>density</strong> is the same failure seen literally, as
     a probability below zero.</p>
   <p>The five handles are SVI's parameters. <span class="n">a</span> shifts total variance up
     and down, <span class="n">b</span> sets how steeply both wings rise,
@@ -324,12 +378,12 @@
     </div>
   </div>
 </div>
-<div class="text"><div class="finding"><span class="m">Finding &middot; experiment one</span>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment two</span>
   <p id="sBreak"></p></div></div>
 <div class="endrule"><div></div></div>
 
 <div class="text open" id="fit">
-  <div class="onum">02</div>
+  <div class="onum">03</div>
   <span class="m">Calibrate &middot; noisy quotes</span>
   <h2>Fitting marks that are not clean</h2>
   <p class="thesis">Real quotes are not a curve. They are a curve plus whatever the market was
@@ -343,9 +397,11 @@
     at <span class="n">k = 0</span>.</p>
   <p>The fit also has to pass two separate no-arbitrage tests. <em>Butterfly</em> is the
     within-expiry one from the last section: the density along a single smile must stay
-    positive. <em>Calendar</em> is the across-expiry one: total variance at a given strike must
-    never fall as maturity grows, because a longer option contains a shorter one plus more
-    time, so quoting less total variance for more time is free money in the other direction.
+    positive. <em>Calendar</em> is the across-expiry one: total implied variance at fixed
+    <span class="n">k</span> must be non-decreasing in maturity, since a calendar spread has a
+    non-negative payoff, so quoting less total variance for more time is a static arbitrage in
+    the other direction. Together the two are what "free of static arbitrage" means for a
+    surface.
     Drag the noise up and watch the residuals grow:</p>
 </div>
 
@@ -367,12 +423,12 @@
     <span class="m" id="fitState"></span>
   </div>
 </div>
-<div class="text"><div class="finding"><span class="m">Finding &middot; experiment two</span>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment three</span>
   <p id="sFit"></p></div></div>
 <div class="endrule"><div></div></div>
 
 <div class="text open" id="sabr">
-  <div class="onum">03</div>
+  <div class="onum">04</div>
   <span class="m">SABR &middot; the other model</span>
   <h2>A second opinion on the same quotes</h2>
   <p class="thesis">SVI is a shape fitted to a slice. SABR is a stochastic-volatility model
@@ -429,7 +485,7 @@
     <span class="m" id="sabrState"></span>
   </div>
 </div>
-<div class="text"><div class="finding"><span class="m">Finding &middot; experiment three</span>
+<div class="text"><div class="finding"><span class="m">Finding &middot; experiment four</span>
   <p id="sSabr"></p></div></div>
 <div class="endrule"><div></div></div>
 
@@ -451,6 +507,6 @@
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"
         integrity="sha384-i3R37b3tF+HWudsUf1VSEOY2YxwSNMqY8DQa9Z0O3xh+NkJ9o+yjcGyIi5huj+nB"
         crossorigin="anonymous"></script>
-<script src="demo.js"></script>
+<script src="demo.js?v=215e22bd"></script>
 </body>
 </html>

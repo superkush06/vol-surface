@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import pathlib
+import re
 import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -59,6 +60,20 @@ def build(out: pathlib.Path = BUNDLE, root: pathlib.Path | None = None) -> int:
     dsha = hashlib.sha256(driver.read_bytes()).hexdigest()[:8] if driver.exists() else ""
     STAMP.write_text(json.dumps(
         {"sha": sha, "driver": dsha, "modules": len(files)}) + "\n")
+
+    # demo.js is loaded by a <script src> before any of our code runs, so it
+    # cannot version itself from bundle.json. Stamp the tag at build time
+    # instead, or a cached script sits in front of fresh HTML and the page
+    # fails on a function that plainly exists in the file being served.
+    page = out.parent / "index.html"
+    js = out.parent / "demo.js"
+    if page.exists() and js.exists():
+        jsha = hashlib.sha256(js.read_bytes()).hexdigest()[:8]
+        html = page.read_text()
+        new = re.sub(r'<script src="demo\.js(\?v=[0-9a-f]+)?"></script>',
+                     f'<script src="demo.js?v={jsha}"></script>', html)
+        if new != html:
+            page.write_text(new)
     return len(files)
 
 

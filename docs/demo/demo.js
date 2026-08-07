@@ -88,7 +88,136 @@ function watch(sel, go) {
   }, { rootMargin: "180px" }).observe($(sel));
 }
 
-/* ===== 00 · the surface ================================================== */
+/* ===== 00 · the inversion ================================================ */
+
+let INV = null, SCR = null;
+const IV = { sigma: 0.20, T: 1.0, noise: 25 };
+
+function drawInvert() {
+  const H = 300;
+  const { c, w } = ctx($("#invert-fig"), H);
+  if (!INV) return;
+  const padL = 62, padR = 74, top = 26, bot = 40;
+  const pw = w - padL - padR, ph = H - top - bot;
+  const ks = INV.ks;
+  const X = (k) => padL + (k - ks[0]) / (ks[ks.length - 1] - ks[0]) * pw;
+
+  // price falls across strikes on the left axis
+  const pmax = Math.max(...INV.price), pmin = Math.min(...INV.price);
+  const YP = (v) => top + ph - (v - pmin) / ((pmax - pmin) || 1) * ph;
+  // and the recovered vol is flat on the right, at a deliberately tight scale
+  const band = 0.02;
+  const YV = (v) => top + ph / 2 - (v - IV.sigma) / band * (ph / 2);
+
+  c.font = MONO(9.5, 500); c.textBaseline = "middle";
+  for (let i = 0; i <= 4; i++) {
+    const v = pmin + (pmax - pmin) * i / 4;
+    c.strokeStyle = INK; c.globalAlpha = .08;
+    c.beginPath(); c.moveTo(padL, YP(v) + .5); c.lineTo(padL + pw, YP(v) + .5); c.stroke();
+    c.globalAlpha = 1; c.fillStyle = QUIET; c.textAlign = "right";
+    c.fillText(v.toFixed(1), padL - 9, YP(v));
+  }
+  c.textAlign = "left"; c.fillStyle = GOLD;
+  c.fillText("OPTION PRICE", padL - 54, 12);
+  c.textAlign = "right"; c.fillStyle = CALM;
+  c.fillText("VOL RECOVERED", w - padR + 62, 12);
+
+  c.strokeStyle = GOLD; c.lineWidth = 2.2; c.beginPath();
+  INV.price.forEach((v, i) => (i ? c.lineTo(X(ks[i]), YP(v)) : c.moveTo(X(ks[i]), YP(v))));
+  c.stroke();
+
+  // the vol that went in, and the vol that came back
+  c.strokeStyle = INK; c.globalAlpha = .3; c.setLineDash([3, 3]);
+  c.beginPath(); c.moveTo(padL, YV(IV.sigma)); c.lineTo(padL + pw, YV(IV.sigma)); c.stroke();
+  c.setLineDash([]); c.globalAlpha = 1;
+  c.strokeStyle = CALM; c.lineWidth = 2.6; c.beginPath();
+  let st = false;
+  INV.iv.forEach((v, i) => {
+    if (v === null) { st = false; return; }
+    st ? c.lineTo(X(ks[i]), YV(v)) : (c.moveTo(X(ks[i]), YV(v)), st = true);
+  });
+  c.stroke();
+  c.fillStyle = QUIET; c.font = MONO(9.5, 500); c.textAlign = "left";
+  c.fillText(`${(IV.sigma * 100).toFixed(1)}% IN`, padL + 6, YV(IV.sigma) - 11);
+  c.textAlign = "right";
+  c.fillText(`SCALE ±${(band * 100).toFixed(0)} VOL PTS`, w - padR + 62, YV(IV.sigma) + 13);
+
+  // the discrete screen, marked where it fires
+  if (SCR) {
+    const bad = new Set(SCR.butterfly_idx);
+    SCR.ks.forEach((k, i) => {
+      if (k < ks[0] || k > ks[ks.length - 1]) return;
+      c.fillStyle = bad.has(i) ? WARN : "rgba(53,50,44,.35)";
+      c.beginPath(); c.arc(X(k), top + ph + 14, bad.has(i) ? 3.6 : 2, 0, 7); c.fill();
+    });
+    c.fillStyle = QUIET; c.textAlign = "left"; c.font = MONO(9, 500);
+    c.fillText("RAW QUOTES SCREENED", padL, top + ph + 30);
+  }
+  c.fillStyle = QUIET; c.font = MONO(9.5, 500); c.textAlign = "center";
+  [-0.4, -0.2, 0, 0.2, 0.4].forEach((k) => c.fillText(k.toFixed(1), X(k), H - 6));
+}
+
+async function computeInvert() {
+  if (INV) return;
+  await refreshInvert();
+  slider($("#slSig"), $("#vSig"), 0.05, 0.80, IV.sigma, CALM,
+         (v) => { IV.sigma = v; refreshInvert(); }, (v) => (v * 100).toFixed(1) + "%");
+  slider($("#slTau"), $("#vTau"), 0.08, 3.0, IV.T, CALM,
+         (v) => { IV.T = v; refreshInvert(); }, (v) => v.toFixed(2) + "y");
+  slider($("#slScr"), $("#vScr"), 0, 800, IV.noise, WARN,
+         (v) => { IV.noise = Math.round(v); refreshScreen(); },
+         (v) => `${Math.round(v)} bp`);
+}
+
+async function refreshInvert() {
+  $("#invNote").textContent = "pricing and inverting";
+  INV = await pyJSON(`vs.price_curve(T=${IV.T}, sigma=${IV.sigma})`);
+  const one = await pyJSON(`vs.price_and_invert(T=${IV.T}, sigma=${IV.sigma})`);
+  runs += 1; tally();
+  INV.one = one;
+  if (!SCR) await refreshScreen(); else { drawInvert(); sayInvert(); }
+}
+
+async function refreshScreen() {
+  SCR = await pyJSON(`vs.screen_quotes(noise_bps=${IV.noise})`);
+  runs += 1; tally();
+  drawInvert(); sayInvert();
+}
+
+function sayInvert() {
+  if (!INV) return;
+  const one = INV.one;
+  const err = INV.worst_err;
+  const clean = SCR && SCR.butterfly_idx.length === 0 && SCR.calendar_idx.length === 0;
+  $("#invNote").textContent = `${INV.recovered} of ${INV.n} strikes inverted`;
+  $("#invState").textContent = `worst error ${err === null ? "n/a" : err.toExponential(1)}`;
+  const v = $("#invVerdict");
+  v.classList.toggle("bad", !clean);
+  $("#ivTag").textContent = clean ? "screen clean" : "screen fires";
+  $("#ivMsg").innerHTML = clean
+    ? `At <span class="n">${SCR ? SCR.noise_bps : 25} bp</span> of noise the raw quotes carry
+       no butterfly or calendar violation, so they are worth fitting.`
+    : `At <span class="n">${SCR.noise_bps} bp</span> the raw quotes already violate the
+       butterfly condition at <span class="n">${SCR.butterfly_idx.length}</span> of
+       <span class="n">${SCR.n}</span> strikes${SCR.calendar_idx.length
+         ? `, and calendar at ${SCR.calendar_idx.length}` : ""}. No model has touched them
+       yet.`;
+  $("#sInvert").innerHTML =
+    `Priced at <span class="n">${(IV.sigma * 100).toFixed(1)}%</span> and inverted back, the
+     worst disagreement across all <span class="n">${INV.n}</span> strikes is
+     <span class="n">${err === null ? "n/a" : err.toExponential(1)}</span>, which is solver
+     tolerance rather than approximation. At the money the option is worth
+     <span class="n">${one.price.toFixed(4)}</span> with delta
+     <span class="n">${one.greeks.delta.toFixed(3)}</span> and vega
+     <span class="n">${one.greeks.vega.toFixed(1)}</span>.
+     The dots along the bottom are a different check: <span class="n">butterfly_violations</span>
+     and <span class="n">calendar_violations</span> read strikes and vols directly, with no
+     model in between, which is the test you run on a screen before deciding whether it is
+     worth fitting at all. Push the noise up and watch them start firing, well before any
+     fitter is involved.`;
+}
+
+/* ===== 01 · the surface ================================================== */
 
 let SURF = null;
 const SHAPE = { level: 1, skew: 1, wings: 1 };
@@ -663,7 +792,9 @@ function saySabr() {
 
 /* ===== chrome ============================================================ */
 
-const redraw = () => { drawSurf(); drawSlice(); drawResid(); drawSabr(); };
+const redraw = () => {
+  drawInvert(); drawSurf(); drawSlice(); drawResid(); drawSabr();
+};
 addEventListener("resize", redraw);
 document.fonts.ready.then(redraw);
 
@@ -700,6 +831,7 @@ document.fonts.ready.then(redraw);
     py.unpackArchive(await (await fetch("volsurf-pkg.zip" + v, fresh)).arrayBuffer(), "zip");
     py.FS.writeFile("vs.py", await (await fetch("vs.py" + v, fresh)).text());
     await pyRun("import sys; sys.path.insert(0,'.')\nimport vs");
+    watch("#invert-fig", computeInvert);
     watch("#surf", computeSurf);
     watch("#slice", computeBreak);
     watch("#resid", computeFit);

@@ -15,10 +15,15 @@ import math
 import random
 
 from volsurf import (
+    BlackScholes,
+    IVSolverError,
     SABRParams,
     SVIRawParams,
+    butterfly_violations,
+    calendar_violations,
     fit_sabr,
     fit_svi_surface,
+    implied_vol,
     sabr_iv,
     svi_density,
     svi_g,
@@ -274,4 +279,93 @@ def sabr_curve(alpha, beta, rho, nu, T=1.0, F=100.0,
         "bp": round(rms * 1e4, 1) if good else None,
         "defined": not bad,
         "atm": round(sabr_iv(F, F, T, p), 6) if not bad else None,
+    }
+
+
+# ---------------------------------------------------------------------------
+# 00a: the inversion everything else stands on
+# ---------------------------------------------------------------------------
+
+def price_and_invert(S=100.0, K=100.0, T=1.0, r=0.02, q=0.0, sigma=0.20,
+                     call=True):
+    """Price an option, then recover the volatility from that price.
+
+    This is the foundation the rest of the library sits on. Every quoted vol
+    on the surface is the output of exactly this inversion, run once per mark.
+    `BlackScholes` prices in closed form and exposes delta, vega and gamma;
+    then
+    `implied_vol` throws the price back at a Brent solver and asks what sigma
+    produced it. Recovering the input to solver tolerance is the check that
+    the two halves agree.
+    """
+    bs = BlackScholes(S=S, K=K, T=T, r=r, q=q)
+    px = bs.price(sigma, call=call)
+    try:
+        back = implied_vol(px, bs, call=call)
+        err = abs(back - sigma)
+        failed = None
+    except IVSolverError as exc:
+        back, err, failed = None, None, str(exc)[:160]
+    g = {"delta": bs.delta(sigma, call=call),
+         "vega": bs.vega(sigma),
+         "gamma": bs.gamma(sigma)}
+    return {
+        "price": round(px, 6),
+        "sigma_in": round(sigma, 6),
+        "sigma_out": None if back is None else round(back, 10),
+        "abs_err": None if err is None else err,
+        "failed": failed,
+        "call": call,
+        "intrinsic": round(max(0.0, (S - K) if call else (K - S)), 4),
+        "greeks": {k: round(v, 6) for k, v in g.items()},
+    }
+
+
+def price_curve(S=100.0, T=1.0, r=0.02, q=0.0, sigma=0.20, call=True, n=61):
+    """Price against strike, and the vol recovered back out at each one.
+
+    Drawn together so the round trip is visible rather than asserted: the
+    price falls away across strikes while the recovered vol stays flat at the
+    number that generated it.
+    """
+    ks = [-0.5 + 1.0 * i / (n - 1) for i in range(n)]
+    px, back = [], []
+    for k in ks:
+        bs = BlackScholes(S=S, K=S * math.exp(k), T=T, r=r, q=q)
+        p = bs.price(sigma, call=call)
+        px.append(round(p, 6))
+        try:
+            back.append(round(implied_vol(p, bs, call=call), 8))
+        except IVSolverError:
+            back.append(None)
+    good = [v for v in back if v is not None]
+    return {
+        "ks": [round(k, 4) for k in ks], "price": px, "iv": back,
+        "sigma": sigma,
+        "worst_err": max(abs(v - sigma) for v in good) if good else None,
+        "recovered": len(good), "n": n,
+    }
+
+
+def screen_quotes(noise_bps=NOISE_BPS, seed=20260727, T=1.0, F=100.0):
+    """Run the discrete no-arbitrage screens over the raw quotes.
+
+    `butterfly_violations` and `calendar_violations` work on strikes and vols
+    directly, with no model in between. That makes them the check you can run
+    on a screen before deciding whether it is even worth fitting, which is a
+    different job from the parametric g(k) test the fitted slice gets.
+    """
+    sl = {row[0]: row for row in quoted_slices(noise_bps, seed)}
+    _, ks, _, vols = sl[T]
+    strikes = [F * math.exp(k) for k in ks]
+    bfly = butterfly_violations(strikes, vols, T, F)
+    short_T = 0.5
+    _, ks_s, _, vols_s = sl[short_T]
+    cal = calendar_violations(strikes, vols_s, vols, short_T, T, F)
+    return {
+        "ks": ks, "strikes": [round(s, 3) for s in strikes],
+        "vols": [round(v, 6) for v in vols],
+        "butterfly_idx": bfly, "calendar_idx": cal,
+        "n": len(ks), "noise_bps": noise_bps,
+        "short_label": LABEL[short_T], "long_label": LABEL[T],
     }
