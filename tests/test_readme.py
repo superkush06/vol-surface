@@ -211,18 +211,22 @@ def test_hero_caption() -> None:
 
 
 def test_the_soft_penalty_caveat() -> None:
-    """The penalty leaves min g(k) above zero and under the stated bound.
+    """The penalty shrinks |min g(k)| by orders of magnitude without fixing its sign.
 
-    Deliberately a bound and not an equality. The residual is around 7e-06 and
-    is the leftover of a soft penalty, so its leading digits depend on the
-    platform's libm; pinning them would make CI fail on macOS for a reason
-    that says nothing about the library.
+    A magnitude bound, deliberately, and not a sign test. `butterfly_penalty`
+    adds a term to the objective rather than constraining the feasible set, so
+    where the residual lands is a property of the optimiser's path: CI has seen
+    +6.6e-06 on macOS/3.12 and -8.3e-05 on macOS/3.11 from the same source. A
+    sign assertion here would be asserting something the library does not
+    claim, which is the whole point of the caveat this checks.
     """
+    unpenalised, _ = svi_min_g(VOGT, -1.5, 1.5, n=3001), None
     repaired, _ = _repaired_vogt_fit()
     rep_g, _ = svi_min_g(repaired, -1.5, 1.5, n=3001)
-    bound = literal(r"but\s+below `([\d.e-]+)`")
-    assert rep_g > 0.0, "the penalty should leave g(k) non-negative"
-    assert rep_g < bound, f"min g(k) = {rep_g:.2e}, above the claimed {bound:.0e}"
+    bound = literal(r"to within `([\d.e-]+)` of zero")
+    assert abs(rep_g) < bound, f"|min g(k)| = {abs(rep_g):.2e}, claimed within {bound:.0e}"
+    assert abs(rep_g) < abs(unpenalised[0]) / 100, (
+        f"penalty only improved min g(k) from {unpenalised[0]:.2e} to {rep_g:.2e}")
 
 
 def test_the_readme_states_the_real_test_count() -> None:

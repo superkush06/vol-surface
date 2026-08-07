@@ -252,11 +252,15 @@ in [`docs/theory.md`](docs/theory.md).
   ordering is checked afterwards. Enforcing it during calibration means a fit
   coupled across expiries — SSVI is the usual route, and it is not here.
 - **Guarantee an arbitrage-free fit.** `butterfly_penalty` is a soft penalty,
-  not a projection. On the Vogt slice it lands `min g(k)` above zero but
-  below `1e-05`, which is non-negative without being non-negative by
-  construction. The exact residual is a soft-penalty artefact and moves in the
-  last digits between platforms, so the bound is what is claimed here rather
-  than a pinned value.
+  not a projection, and the difference is not academic. On the Vogt slice it
+  pulls `min g(k)` from `-0.0328` to within `1e-4` of zero, better than two
+  orders of magnitude, but it does not fix the sign. The residual is the
+  leftover of a penalty term rather than a constraint, so where it lands
+  depends on the optimiser's path: this repository's CI sees `+6.6e-06` on
+  macOS with CPython 3.12 and `-8.3e-05` on macOS with 3.11, from identical
+  source. Non-negative in practice, not by construction, and if you need the
+  guarantee you need a projection or an SSVI parameterisation that is
+  arbitrage-free by design.
 - **Vectorise.** Everything is scalar Python. Calibration is comfortable; a
   Monte Carlo inner loop would not be.
 - **Local volatility.** Dupire from `w(k, T)` is the natural next thing and

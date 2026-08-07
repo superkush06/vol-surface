@@ -25,12 +25,19 @@
 - numpy is pinned below 3 in the `dev` and `plot` extras.
 
 ### Fixed
-- The soft-penalty caveat in the README pinned `min g(k)` to two significant
-  figures of a residual near `7e-06`. That is the leftover of a penalty term,
-  and its leading digits move between platforms, so the same commit that added
-  a macOS CI leg would have failed on it. The claim is now the bound the
-  argument actually needs, `above zero and below 1e-05`, and the test asserts
-  that instead of an equality.
+- Three README numbers were pinned to display precision on values that come
+  out of the optimiser, and the new matrix failed on two of them before finding
+  something worse. The repaired-smile claim read `at most 1.83 vol points` and
+  CPython 3.11 computes 1.81; the recovery claim pinned the first decimal of a
+  relative error and was one tweak from the same break. Both are bounds now.
+- The soft-penalty caveat was wrong, not merely over-precise. It claimed the
+  penalty leaves `min g(k)` above zero, and on macOS with CPython 3.11 the same
+  source lands `-8.3e-05`. `butterfly_penalty` adds a term to the objective
+  rather than constraining the feasible set, so the sign was never guaranteed,
+  which is what "not a projection" in that same sentence already said. The
+  claim is now what the penalty actually delivers: `|min g(k)|` pulled from
+  `-0.0328` to within `1e-4`, better than two orders of magnitude, with the
+  sign left to the optimiser's path.
 - `test_the_readme_states_the_real_test_count` cleared the repository's own
   `-ra -q` addopts before collecting. Passing `-q` on top of it made pytest
   doubly quiet and dropped the "N tests collected" line the test parses.
